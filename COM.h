@@ -9,20 +9,21 @@
 
 class COM {
 private:
-    std::vector<Hardware> line;
+    std::vector<Hardware> HW_line;
     int bandwidth;
     int connect_cost;
     int id;
 public:
-    COM(int bd,int cost,int set_id);
-    COM(std::vector<Hardware> h_list, int bd,int cost,int set_id);
+    COM(int _bandwidth,int _cost,int _id);
+    COM(std::vector<Hardware> h_list, int _bandwidth,int _cost,int _id);
     void add_Hardware(Hardware h);
     bool operator<(const COM& other) const;
     int getSize();
     int getID();
-    int getB();
-    int getC();
+    int getBandwidth();
+    int getCost();
     bool isConnected(int find_id);
+    bool isConnected(Hardware other);
     void PrintCOM(int hw_size,std::ostream& out);
 
 };
