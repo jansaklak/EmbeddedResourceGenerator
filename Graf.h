@@ -12,6 +12,7 @@ class Graf
 {
     int matrix[SIZE][SIZE];
     int numberOfVertices;
+    int maxVert;
 public:
     Graf();
     ~Graf();
@@ -25,13 +26,12 @@ public:
     void PrintToFile(int size,std::string filename);
     void printMatrix(int size, std::ostream& out = std::cout);
     int vertexDegree(int idx);
-    int getVerticlesSize() const;
+    int getVerticesSize() const;
     std::vector<int> getNeighbourIndices(int idx) const;
     std::vector<int> getOutNeighbourIndices(int idx) const;
     void printNeighbourIndices(int idx);
     int getNumberOfEdges();
     void readFromFile(std::string path,bool wagi);
-
 private:
     void clear();
 };
