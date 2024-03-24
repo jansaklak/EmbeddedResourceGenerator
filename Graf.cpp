@@ -44,15 +44,12 @@ std::vector<int> Graf::dijkstra(int startVertex, int endVertex) const {
 }
 
 Graf::Graf(){
+    maxVert = 0;
     clear();
 }
 
-void Graf::createVertices(int ile){
-    numberOfVertices = ile;
-}
-
-int Graf::getVerticlesSize() const {
-    return numberOfVertices;
+int Graf::getVerticesSize() const {
+    return maxVert;
 }
 
 bool checkCorrect(int i1, int i2){
@@ -61,11 +58,19 @@ bool checkCorrect(int i1, int i2){
 }
 
 void Graf::addEdge(int i_Vertex_Index_1, int i_Vertex_Index_2){
-    if(checkCorrect(i_Vertex_Index_1,i_Vertex_Index_2)) matrix[i_Vertex_Index_1][i_Vertex_Index_2] = 1;
+    if(checkCorrect(i_Vertex_Index_1,i_Vertex_Index_2)){
+        matrix[i_Vertex_Index_1][i_Vertex_Index_2] = 1;
+        if(i_Vertex_Index_1>maxVert) maxVert = i_Vertex_Index_1;
+        if(i_Vertex_Index_2>maxVert) maxVert = i_Vertex_Index_2;
+    } 
 }
 
 void Graf::addEdge(int i_Vertex_Index_1, int i_Vertex_Index_2, int waga){
-    if(checkCorrect(i_Vertex_Index_1,i_Vertex_Index_2)) matrix[i_Vertex_Index_1][i_Vertex_Index_2] = waga;
+    if(checkCorrect(i_Vertex_Index_1,i_Vertex_Index_2)){
+        matrix[i_Vertex_Index_1][i_Vertex_Index_2] = waga;
+        if(i_Vertex_Index_1>maxVert) maxVert = i_Vertex_Index_1;
+        if(i_Vertex_Index_2>maxVert) maxVert = i_Vertex_Index_2;
+    } 
 }
 
 void Graf::removeEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) {
@@ -143,7 +148,6 @@ void Graf::readFromFile(std::string path,bool wagi)  {
     int a,b,c,licznik;
     std::ifstream plik{path};
     plik >> licznik;
-    createVertices(licznik);
     if(wagi){
         while(plik >> a >> b >> c) addEdge(a,b,c);
     }
@@ -155,12 +159,10 @@ void Graf::readFromFile(std::string path,bool wagi)  {
 void Graf::printMatrix(int size, std::ostream& out) {
     if (size > SIZE)
         size = SIZE;
-
     if (!out) {
         std::cerr << "Nie można otworzyć strumienia do zapisu." << std::endl;
         return;
     }
-
     for (int i = 0; i < size; ++i) {
         for (int j = 0; j < size; ++j) {
             out << matrix[i][j] << " "; 
