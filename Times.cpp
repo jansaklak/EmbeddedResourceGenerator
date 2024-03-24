@@ -5,47 +5,44 @@
 #include <iostream>
 #include "Times.h"
 
-void Times::CountCosts() {
-    
-}
-
 Times::Times(){
     return;
 }
-Times::Times(int verticles, std::vector<Hardware> v) {
-    graph_size = verticles;
-    hw_vec = v;
+Times::Times(int _size, std::vector<Hardware> _HW_vec) {
+    graph_size = _size;
+    HW_vec = _HW_vec;
 }
 
-void Times::setTimesMatrix(std::vector<std::vector<int>> times){
-    times_matrix = times;
+void Times::setTimesMatrix(std::vector<std::vector<int>> _times_matrix){
+    times_matrix.clear();
+    times_matrix = _times_matrix;
 }
 
-void Times::setCostsMatrix(std::vector<std::vector<int>> costs){
-    cost_matrix = costs;
+void Times::setCostsMatrix(std::vector<std::vector<int>> _cost_matrix){
+    cost_matrix.clear();
+    cost_matrix = _cost_matrix;
 }
 
 void Times::SetRandomTimesAndCosts() {
-    int times,cost;
-    double adv;
+    int randTime;
+    int randCost;
+    double randComplexity;
     times_matrix.clear();
     cost_matrix.clear();
-    std::vector<int> v_times;
-    std::vector<int> v_costs;
+    std::vector<int> times_row;
+    std::vector<int> costs_row;
     for (int t = 0; t < graph_size; t++) {
-       
-        for (Hardware hw : hw_vec) {
-            
-            adv = 1 + rand() % (SCALE / 4);
-            times = adv * SCALE * sqrt(SCALE) / (hw.getCost() + rand() % (SCALE / 8));
-            cost = SCALE * 8 / times + rand() % (SCALE / 8);
-            v_times.push_back(times);
-            v_costs.push_back(cost);
+        for (Hardware hw : HW_vec) {
+            randComplexity = 1 + rand() % (SCALE / 4);
+            randTime = randComplexity * SCALE * sqrt(SCALE) / (hw.getCost() + rand() % (SCALE / 8));
+            randCost = SCALE * 8 / randTime + rand() % (SCALE / 8);
+            times_row.push_back(randTime);
+            costs_row.push_back(randCost);
         }
-        times_matrix.push_back(v_times);
-        cost_matrix.push_back(v_costs);
-        v_times.clear();
-        v_costs.clear();
+        times_matrix.push_back(times_row);
+        cost_matrix.push_back(costs_row);
+        times_row.clear();
+        costs_row.clear();
     }
     return;
 }
@@ -57,21 +54,31 @@ void Times::show(std::ostream& out) {
 
 void Times::printTimes(std::ostream& out) {
     out << "@times\n";
-    for (std::vector<int> v : times_matrix) {
-        for (int i : v) {
+    for (std::vector<int> row : times_matrix) {
+        for (int i : row) {
             out << i << " ";
-            
         }
         out << std::endl;
     }
 }
 
 void Times::printCosts(std::ostream& out) {
-    out << "@costs\n";
-    for (std::vector<int> v : cost_matrix) {
-        for (int i : v) {
+    out << "@cost\n";
+    for (std::vector<int> row : cost_matrix) {
+        for (int i : row) {
             out << i << " ";
         }
         out << std::endl;
     }
+}
+
+
+int Times::getTime(int TaskID,int HW_ID){
+    std::vector<int> row = times_matrix[TaskID];
+    return row[HW_ID];
+}
+
+int Times::getCost(int TaskID,int HW_ID){
+    std::vector<int> row = cost_matrix[TaskID];
+    return row[HW_ID];
 }
