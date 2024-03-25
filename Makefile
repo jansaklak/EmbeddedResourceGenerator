@@ -4,7 +4,7 @@ CFLAGS=-std=c++11 -g
 all: main
 
 main: main.o Graf.o Hardware.o Times.o COM.o Cost_List.o TimeAndCost.o
-	$(CC) $(CFLAGS) main.o Graf.o Hardware.o Times.o COM.o Cost_List.o TimeAndCost.o -o main -lncurses
+	$(CC) $(CFLAGS) main.o Graf.o Hardware.o Times.o COM.o Cost_List.o TimeAndCost.o -o main
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp
@@ -13,7 +13,7 @@ Graf.o: Graf.cpp
 	$(CC) $(CFLAGS) -c Graf.cpp
 
 Costs.o: Cost_List.cpp
-	$(CC) $(CFLAGS) -c Cost_List.cpp -lncurses
+	$(CC) $(CFLAGS) -c Cost_List.cpp
 
 Hardware.o: Hardware.cpp
 	$(CC) $(CFLAGS) -c Hardware.cpp
