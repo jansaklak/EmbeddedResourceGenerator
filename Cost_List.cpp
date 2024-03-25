@@ -14,9 +14,7 @@ bool randomBool(int prob) {
 }
 
 int getRand(int MAX){
-    if(MAX < 1){
-        MAX = 1;
-    }
+    if(MAX < 1) MAX = 1;
     return rand() % MAX;
 }
 
@@ -35,6 +33,10 @@ Times Cost_List::getTimes(){
     return times;
 }
 
+Cost_List::~Cost_List() {
+
+}
+
 Cost_List::Cost_List(){
     tasks_amount = 0;
     hardware_cores_amount = 0;
@@ -43,18 +45,19 @@ Cost_List::Cost_List(){
     with_cost = 0;
 }
 
-Cost_List::Cost_List(int _tasks,int _hcores,int _punits,int _channels,int _withCost){
-    tasks_amount = _tasks;
-    hardware_cores_amount = _hcores;
-    processing_unit_amount = _punits;
-    channels_amount = _channels;
-    with_cost = _withCost;
+Cost_List::Cost_List(int _tasks, int _hcores, int _punits, int _channels, int _withCost)
+    : tasks_amount(_tasks), hardware_cores_amount(_hcores),
+    processing_unit_amount(_punits), channels_amount(_channels),
+    with_cost(_withCost) {
+    Hardwares.clear();
+    Channels.clear();
+    times = Times();
 }
 
 void Cost_List::Load_From_File(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cout << "Nie udało się otworzyć pliku." << std::endl;
+        std::cout << "Nie udalo sie otworzyc pliku." << std::endl;
         return;
     }
     std::string line;
@@ -70,22 +73,21 @@ void Cost_List::Load_From_File(const std::string& filename) {
     while (getline(file, line)) {
          if (line.find("@tasks") != std::string::npos) {
             section = 0;
-            std::cout << "Sekcja @tasks" << std::endl;
+            //std::cout << "Sekcja @tasks" << std::endl;
         } else if (line.find("@proc") != std::string::npos) {
             section = 1;
-            std::cout << "Sekcja @proc" << std::endl;
+            //std::cout << "Sekcja @proc" << std::endl;
         } else if (line.find("@times") != std::string::npos) {
             section = 2;
-            std::cout << "Sekcja @times" << std::endl;
+            //std::cout << "Sekcja @times" << std::endl;
         } else if (line.find("@cost") != std::string::npos) {
             section = 3;
-            std::cout << "Sekcja @cost" << std::endl;
+            //std::cout << "Sekcja @cost" << std::endl;
         } else if (line.find("@comm") != std::string::npos) {
             section = 4;
-            std::cout << "Sekcja @comm" << std::endl;
+            //std::cout << "Sekcja @comm" << std::endl;
         } else {
             if (section != -1) {
-                //std::cout << "Linia w sekcji " << section << ": " << line << std::endl;
             }
             if(section == 0){
                 char c;
@@ -93,7 +95,6 @@ void Cost_List::Load_From_File(const std::string& filename) {
                 while(ss >> c >> Tnum >> tasks){
                     int value;
                     while (ss >> to >> c >> weight >> c) {
-                        std::cout << "dodaje wektor" << Tnum << " " << to << " "  << weight <<std::endl;
                         if(weight == 0) weight = 1;
                         loaded.addEdge(Tnum,to,weight);
                     }
@@ -147,11 +148,15 @@ void Cost_List::Load_From_File(const std::string& filename) {
                 times.setTimesMatrix(times_matrix);
                 times.setCostsMatrix(costs_matrix);
                 TaskGraph = loaded;
-                TaskGraph.PrintToFile(Tnum,"matrix_test.dat");      
-            }
+                std::ofstream matrix_file("matrix.dat");
+                if (!matrix_file.is_open()) {
+                    std::cout << "Nie udało sis otworzyć pliku." << std::endl;
+                    return;
+                }
+                //TaskGraph.printMatrix(matrix_file);
             }
         }
-    
+    }
     file.close();
 }
 
@@ -233,43 +238,41 @@ void Cost_List::RandALL(){
 
 void Cost_List::PrintALL(std::string filename,bool toScreen){
     std::ofstream outputFile(filename); 
-            if (outputFile.is_open()) {
-                std::ofstream outputFileMatrix("matrix.dat"); 
-                TaskGraph.printMatrix(TaskGraph.getVerticesSize(),outputFileMatrix);
-                //@tasks
-                if(toScreen) printTasks();
-                printTasks(outputFile);
-                //@proc
-                if(toScreen) PrintProc();
-                PrintProc(outputFile);
-                //@times @cost
-                
-                if(toScreen) times.show();
-                times.show(outputFile);
-                //@coms
-                PrintCOMS(outputFile);
-                if(toScreen) PrintCOMS();
-                outputFile.close();
-                std::cout << "Zapisano liste do pliku " << filename << std::endl;
-            } 
-            else {
-                std::cerr << "Nie można otworzyć pliku do zapisu." << std::endl;
-                return;
-            }
+    if (outputFile.is_open()) {
+        std::ofstream outputFileMatrix("matrix.dat"); 
+        //TaskGraph.printMatrix(outputFileMatrix);
+    //@tasks
+        if(toScreen) printTasks();
+        printTasks(outputFile);
+    //@proc
+        if(toScreen) PrintProc();
+        PrintProc(outputFile);
+    //@times @cost
+        if(toScreen) times.show();
+        times.show(outputFile);
+    //@coms
+        PrintCOMS(outputFile);
+        if(toScreen) PrintCOMS();
+        outputFile.close();
+        std::cout << "Zapisano liste do pliku " << filename << std::endl;
+    } 
+    else {
+        std::cerr << "Nie można otworzyć pliku do zapisu." << std::endl;
+        return;
+    }
 }
 
 void Cost_List::getRandomProc(){
-            for(int i = 0; i<hardware_cores_amount;i++){
-                Hardwares.push_back(Hardware(getRand(5)+1,Hardware_Type::HC,Hardwares.size()));
-            }
-            for(int i = 0; i<processing_unit_amount;i++){
-                Hardwares.push_back(Hardware(getRand(5)+1,Hardware_Type::PE,Hardwares.size()));
-            }
-            return;
-        }
+    for(int i = 0; i<hardware_cores_amount;i++){
+        Hardwares.push_back(Hardware(getRand(5)+1,Hardware_Type::HC,Hardwares.size()));
+    }
+    for(int i = 0; i<processing_unit_amount;i++){
+        Hardwares.push_back(Hardware(getRand(5)+1,Hardware_Type::PE,Hardwares.size()));
+    }
+    return;
+}
 
 void Cost_List::ConnectRandomCH(){
-           
             for(int i = 0; i<channels_amount;i++){
                 int bd = ((getRand(9)+1)*10);
                 int con_cost = (getRand(9)+1)*5;
@@ -280,14 +283,12 @@ void Cost_List::ConnectRandomCH(){
                         c.add_Hardware(h);
                     }
                 }
-
                 while(c.getSize()<3){
                         rd = getRand(Hardwares.size());
                         c.add_Hardware(Hardwares[rd]);
                 }
                 Channels.push_back( c );
             }
-            
             for(Hardware h : Hardwares){
                 bool All_connected = false;
                 for(COM c : Channels){
@@ -299,7 +300,6 @@ void Cost_List::ConnectRandomCH(){
                         Channels[0].add_Hardware(h);
                     }
             }
-
 }
 
 // std::mutex removeMutex;
@@ -347,12 +347,9 @@ void Cost_List::ConnectRandomCH(){
 
 void Licznik(bool& stop, int& czas) {
     auto start = std::chrono::steady_clock::now(); // Początkowy punkt czasowy
-
     while (!stop) {
         auto current = std::chrono::steady_clock::now();
-        
-        czas = std::chrono::duration_cast<std::chrono::seconds>(current - start).count();
-
+        czas = std::chrono::duration_cast<std::chrono::milliseconds>(current - start).count();
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
@@ -360,34 +357,31 @@ void Licznik(bool& stop, int& czas) {
 
 void Cost_List::RunTasks() {
     int TotalCost = 0;
-    std::cout << "\nUruchamiam zadania\n";
+    std::cout << "\nUruchamiam zadania:\n";
     progress.resize(TaskGraph.getVerticesSize(), -2); // -2 - cant be done flag
     progress[0] = -1;
     std::vector<std::thread> threads;
     int numThreads = Hardwares.size();
-
     bool stop = false; 
     int czas = 0;
     std::thread counterThread(Licznik, std::ref(stop), std::ref(czas));
-
     for (int i = 0; i < numThreads; ++i) {
         threads.push_back(std::thread(&Cost_List::TaskRunner, this, i));
     }
     for (std::thread& thread : threads) {
         thread.join();
     }
-    
     stop = true;
     counterThread.join();
 
-    std::cout << "Czas trwania programu: " << czas << " sekund.\n";
+    std::cout << "\n\nCzas trwania programu: " << czas << " milisekund.\n\n";
 }
 
 void Cost_List::TaskDistribution(int rule) {
     HWtoTasks.resize(Hardwares.size());
     int estimatedCost = 0;
     int estimatedTime = 0;
-    
+    TotalCost = 0;
     int tasks_amount = TaskGraph.getVerticesSize();
     if(rule < 3){                                                                            //WG NAJMNIEJSZEGO POJEDYNCZEGO
         for (int task_id = 0; task_id < tasks_amount; ++task_id) {
@@ -423,23 +417,21 @@ void Cost_List::TaskDistribution(int rule) {
         }
     }
     int j = 0;
-    std::cout << "Podział zadań: \n";
+    std::cout << "\n\nPodzial zadan: \n";
     std::cout << "Spodziewany calkowity koszt: " << estimatedCost <<std::endl;
     int SumTime = 0;
     int SumCost = 0;
     for(std::set<int> hw : HWtoTasks){
         SumTime = 0;
         SumCost = 0;
-        std::cout << "HW" << j << ": " << hw.size();
+        std::cout << "\tHW" << j << ": " << hw.size();
         for(int k : hw){
             SumTime += times.getTime(k,j);
             SumCost += times.getCost(k,j);
         }
-        std::cout << "Spodziewany czas pracy: " << SumTime << " koszt: " << SumCost <<std::endl;
+        std::cout << " zadan, spodziewany czas pracy: " << SumTime << " koszt: " << SumCost <<std::endl;
         j++;
     }
-    
-
 }
 
 void Cost_List::TaskRunner(int HWID) {
@@ -450,7 +442,7 @@ void Cost_List::TaskRunner(int HWID) {
             if (progress[t] == -1) {
                 int time = times.getTime(t, HWID);
                 {
-                    std::cout << "T" << t << " on HW" << HWID << std::endl;
+                    std::cout << "T" << t << " on HW" << HWID << "\n";
                     progress[t] = 0;
                     for (int i = 1; i < time+1; ++i) {
                         progress[t] = (((i + 1) * 100) / time);
@@ -465,7 +457,7 @@ void Cost_List::TaskRunner(int HWID) {
             }
         }
         if (taskCounter == alltasks) {
-            std::cout << "\t\tHW" << HWID << " ended\n";
+            std::cout << "\t\t\tHW" << HWID << " ended\n";
             break;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
