@@ -1,7 +1,7 @@
 #pragma once
 #ifndef COST_LIST_H
 #define COST_LIST_H
-#include<mutex>
+#include <mutex>
 #include <iostream>
 #include <fstream>
 #include <set>
@@ -25,6 +25,8 @@ class Cost_List{
         int processing_unit_amount;
         int channels_amount;
         bool with_cost;
+
+        int TotalCost;
         std::vector<int> progress;
         std::vector<std::set<int>> HWtoTasks;
         void TaskRunner(int HWID);
@@ -32,6 +34,7 @@ class Cost_List{
         
         Cost_List(int _tasks,int _hcores,int _punits,int _channels,int _withCost);
         Cost_List();
+        ~Cost_List();
         void CreateRandomTasksGraph();
         void printTasks(std::ostream& out = std::cout);
         void PrintProc(std::ostream& out = std::cout);
