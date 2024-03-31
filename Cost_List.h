@@ -14,6 +14,8 @@
 #include <stack>
 #include "TimeAndCost.h"
 #include <functional>
+#include <map>
+#include "Instance.h"
 class Cost_List{
     private:
         std::vector<Hardware> Hardwares;
@@ -29,30 +31,41 @@ class Cost_List{
         int TotalCost;
         std::vector<int> progress;
         std::vector<std::set<int>> HWtoTasks;
-        void TaskRunner(int HWID);
+        void TaskRunner(Instance i);
+        std::vector<Instance*> Instances;
+        std::map<int, int> HWInstancesCount;
+        std::map<int, Instance*> taskInstanceMap;
     public:
         
         Cost_List(int _tasks,int _hcores,int _punits,int _channels,int _withCost);
         Cost_List();
         ~Cost_List();
         void CreateRandomTasksGraph();
-        void printTasks(std::ostream& out = std::cout);
-        void PrintProc(std::ostream& out = std::cout);
-        void PrintCOMS(std::ostream& out = std::cout);
+        void printTasks(std::ostream& out = std::cout) const;
+        void PrintProc(std::ostream& out = std::cout) const;
+        void PrintCOMS(std::ostream& out = std::cout) const;
         void ConnectRandomCH();
         void getRandomProc();
         void RandALL();
         void RunTasks();
-        void TaskProgress(int task_id, int time, int hw_id);
         void ReadProgress();
         void TaskDistribution(int rule);
-        void PrintALL(std::string filename,bool toScreen);
-        
+        int getStartingTime(int task_id);
+        int getEndingTime(int task_id);
+        void addTaskToInstance(int task_ID,Instance* inst);
+        void removeTaskFromInstance(int task_ID);
+        int getInstanceEndingTime(const Instance* inst);
+        void PrintALL(std::string filename,bool toScreen) const;
+        Hardware* getLowestTimeHardware(int task_id, int time_cost) const;
+        std::vector<int> getLongestPath(int start) const;
+        void createInstance(int task_ID,const Hardware* h);
         void Load_From_File(const std::string& filename);
-        std::vector<Hardware> getHardwares();
-        std::vector<COM> getCOMS();
-        Graf getGraph();
-        Times getTimes();
+        std::vector<Hardware> getHardwares() const;
+        std::vector<COM> getCOMS() const;
+        Instance* getInstance(int task_id);
+        Graf getGraph() const;
+        Times getTimes() const;
+        //void TaskProgress(int task_id, int time, int hw_id);
 };
 
 #endif // COST_LIST_H

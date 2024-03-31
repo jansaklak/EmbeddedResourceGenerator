@@ -10,6 +10,8 @@ class Graf {
 private:
     int maxVert;
     std::vector<std::vector<Edge>> adjList;
+    void DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, std::vector<std::vector<int>>& allPaths) const;
+    int destination;
 public:
     Graf();
     ~Graf();
@@ -18,8 +20,12 @@ public:
     int getWeightEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) const;
     std::vector<int> getNeighbourIndices(int idx) const;
     std::vector<int> getOutNeighbourIndices(int idx) const;
-    void printMatrix(std::ostream& out = std::cout);
-    void printNeighbourIndices(int idx);
-    int getNumberOfEdges();
-    int getVerticesSize();
+    bool checkEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) const;
+    void printMatrix(std::ostream& out = std::cout) const;
+    std::vector<std::vector<Edge>> getAdjList() const;
+    void printNeighbourIndices(int idx) const;
+    int getNumberOfEdges() const;
+    int getVerticesSize() const;
+    std::vector<std::vector<int>> DFS(int start, int end);
+    
 };

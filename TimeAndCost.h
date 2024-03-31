@@ -8,8 +8,8 @@ private:
 
 public:
     TimeAndCost(int _Cost, int _time);
-    int getCost();
-    int getTime();
+    int getCost() const;
+    int getTime() const;
 };
 
 #endif // TIMEANDCOST_H

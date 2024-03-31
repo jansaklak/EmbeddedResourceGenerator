@@ -5,10 +5,10 @@ TimeAndCost::TimeAndCost(int _Cost, int _time) {
     time = _time;
 }
 
-int TimeAndCost::getCost() {
+int TimeAndCost::getCost() const{
     return cost;
 }
 
-int TimeAndCost::getTime() {
+int TimeAndCost::getTime() const{
     return time;
 }

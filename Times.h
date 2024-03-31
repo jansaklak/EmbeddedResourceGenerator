@@ -23,11 +23,11 @@ public:
     void SetRandomTimesAndCosts();
     void setTimesMatrix(std::vector<std::vector<int>> _times_matrix);
     void setCostsMatrix(std::vector<std::vector<int>> _costs_matrix);
-    void show(std::ostream& out = std::cout);
-    int getTime(int TaskID,int HW_ID);
-    int getCost(int TaskID,int HW_ID);
-    void printTimes(std::ostream& out = std::cout);
-    void printCosts(std::ostream& out = std::cout);
+    void show(std::ostream& out = std::cout) const;
+    int getTime(int TaskID,const Hardware* h) const;
+    int getCost(int TaskID,const Hardware* h) const;
+    void printTimes(std::ostream& out = std::cout) const;
+    void printCosts(std::ostream& out = std::cout) const;
 };
 
 #endif // TIMES_H

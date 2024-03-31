@@ -11,22 +11,23 @@ COM::COM(std::vector<Hardware> _HW_line, int _bandwidth,int _cost,int _id) {
     connect_cost = _cost;
     id = _id;
 }
-void COM::add_Hardware(Hardware h) {
-    if(isConnected(h.getID())){
+void COM::add_Hardware(const Hardware* h) {
+    if(isConnected(h)){
         return;
     }
-    HW_line.push_back(h);
+    HW_line.push_back(*h);
 }
-int COM::getSize() {
+
+int COM::getSize() const{
     return HW_line.size();
 }
-int COM::getBandwidth() {
+int COM::getBandwidth() const{
     return bandwidth;
 }
-int COM::getCost() {
+int COM::getCost() const{
     return connect_cost;
 }
-int COM::getID() {
+int COM::getID() const{
     return id;
 }
 
@@ -34,24 +35,17 @@ bool COM::operator<(const COM& other) const {
         return id < other.id;
 }
 
-void COM::PrintCOM(int hw_size,std::ostream& out) {
+void COM::PrintCOM(int hw_size,std::ostream& out) const{
     out << "CHAN" << id << " " << bandwidth << " " << connect_cost << " ";
-            for (int i = 0;i<hw_size;i++){
-                out << isConnected(i) << " ";
+            for (Hardware h : HW_line){
+                out << isConnected(&h) << " ";
             }
     out << "\n";
 }
 
-bool COM::isConnected(int _id) {
+bool COM::isConnected(const Hardware* other) const{
     for(Hardware h : HW_line){
-        if(h.getID() == _id) return true;
-    }
-    return false;
-}
-
-bool COM::isConnected(Hardware other) {
-    for(Hardware h : HW_line){
-        if(h.getID() == other.getID()) return true;
+        if(h.getID() == other->getID()) return true;
     }
     return false;
 }

@@ -38,35 +38,30 @@ int main(){
     int menu,to_screen;
     int running = 1;
     srand (time(NULL));
-    // std::cout << "Czy wypisywać wyniki na ekran? 0/1: ";
-    // std::cin >> to_screen;
     to_screen = 0;
+    Cost_List lista;
     while(running){
         std::cout << "Podaj liczbe:\n0 - utworz losowa liste:\n1 - Wczytaj z pliku: \n2 - uruchom zadania:\n5 - wykonaj zad. 5:\n9 - zakoncz program:\n";
         std::cin >> menu;
-        
         if(menu == 0){
-            Cost_List lista = generateRandomCostList();
+            lista = generateRandomCostList();
             lista.PrintALL("output.dat",to_screen);
         }
         else if(menu == 1){
-            Cost_List lista1;
-            lista1.Load_From_File("output.dat");
-            lista1.PrintALL("input_test.dat",to_screen);
+            lista.Load_From_File("output.dat");
+            lista.PrintALL("input_test.dat",to_screen);
+        }
+        if(menu == 2){
             int strategy;
             std::cout << "Wybierz podział zadań:\n 1-najszybciej 2-najtaniej 3-rownomiernie ";
             std::cin >> strategy;
-            lista1.TaskDistribution(strategy);
-            lista1.RunTasks();
-            // currList = lista;
+            lista.TaskDistribution(strategy);
+            lista.RunTasks();
         }
         else if(menu == 5){
-            Cost_List lista20;
-            lista20.Load_From_File("graph20.dat");
-            lista20.TaskDistribution(1);
-            lista20.RunTasks();
-            
-            
+            lista.Load_From_File("graph20.dat");
+            lista.TaskDistribution(5);
+            lista.RunTasks();
         }
         else if(menu == 9){
             running = 0;

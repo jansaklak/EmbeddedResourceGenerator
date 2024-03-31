@@ -1,2 +1,8 @@
 To run:
 	make run
+
+W celu uruchomienia zadania 5:
+	Wpisać make run albo uruchomić plik Main.exe
+	W oknie wpisać wartość 5.
+	
+	Program mierzy rzeczywisty czas wykonania symulacji zadań. W celu sprawdzenia czasu zgodnego z czasem umieszczonym w grafie należy odczytać wartość "Szacowany czas" 

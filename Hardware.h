@@ -3,7 +3,7 @@
 #include <set>
 #ifndef HARDWARE_H
 #define HARDWARE_H
-
+#include <string>
 extern const int SCALE;
 
 enum class Hardware_Type {
@@ -21,8 +21,10 @@ class Hardware {
         Hardware(double power, Hardware_Type type,int set_id);
         Hardware(int _type,int _cost,int _id);
         bool operator<(const Hardware& other) const;
-        int getID();
-        int getCost();
+        int getID() const;
+        int getCost() const;
+        std::string getType() const;
+        friend std::ostream& operator<<(std::ostream& os, const Hardware& hw);
         void PrintHW(std::ostream& out = std::cout);
 };
 #endif // HARDWARE_H

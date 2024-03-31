@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 #include "Times.h"
+#include <algorithm>
+
 
 Times::Times(){
     return;
@@ -47,12 +49,12 @@ void Times::SetRandomTimesAndCosts() {
     return;
 }
 
-void Times::show(std::ostream& out) {
+void Times::show(std::ostream& out) const{
     printTimes(out);
     printCosts(out);
 }
 
-void Times::printTimes(std::ostream& out) {
+void Times::printTimes(std::ostream& out) const{
     out << "@times\n";
     for (std::vector<int> row : times_matrix) {
         for (int i : row) {
@@ -62,7 +64,7 @@ void Times::printTimes(std::ostream& out) {
     }
 }
 
-void Times::printCosts(std::ostream& out) {
+void Times::printCosts(std::ostream& out) const{
     out << "@cost\n";
     for (std::vector<int> row : cost_matrix) {
         for (int i : row) {
@@ -73,12 +75,13 @@ void Times::printCosts(std::ostream& out) {
 }
 
 
-int Times::getTime(int TaskID,int HW_ID){
+int Times::getTime(int TaskID, const Hardware* h) const {
+    if (h == nullptr) return -1;
     std::vector<int> row = times_matrix[TaskID];
-    return row[HW_ID];
+    return row[h->getID()];
 }
-
-int Times::getCost(int TaskID,int HW_ID){
+int Times::getCost(int TaskID, const Hardware* h) const {
+    if (h == nullptr) return -1;
     std::vector<int> row = cost_matrix[TaskID];
-    return row[HW_ID];
+    return row[h->getID()];
 }
