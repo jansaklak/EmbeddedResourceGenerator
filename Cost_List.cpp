@@ -725,7 +725,7 @@ int Cost_List::getStartingTime(int task_id) {
             const Instance* inst = getInstance(t_id);
             if (inst == nullptr) {
                 skipPath = true;
-                std::cout << " PRZERYWAM T" << task_id << "//";
+                //std::cout << " PRZERYWAM T" << task_id << "//";
                 break;
             }
             const Hardware* hardwarePtr = inst->getHardwarePtr();
