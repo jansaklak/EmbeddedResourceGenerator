@@ -10,7 +10,6 @@
 #include <mutex>
 #include <algorithm>
 #include <map>
-
 #define INF 2147483647
 
 bool randomBool(int prob) {
@@ -249,9 +248,9 @@ void Cost_List::RandALL(){
 }
 
 void Cost_List::PrintALL(std::string filename,bool toScreen) const{
-    std::ofstream outputFile(filename); 
+    std::ofstream outputFile(filename, std::ofstream::trunc); 
     if (outputFile.is_open()) {
-        std::ofstream outputFileMatrix("matrix.dat"); 
+        std::ofstream outputFileMatrix("matrix.dat", std::ofstream::trunc); 
         TaskGraph.printMatrix(outputFileMatrix);
     //@tasks
         if(toScreen) printTasks();
@@ -315,17 +314,14 @@ void Cost_List::ConnectRandomCH(){
             }
 }
 
-
-
 void Licznik(bool& stop, int& czas) {
-    auto start = std::chrono::steady_clock::now(); // Początkowy punkt czasowy
+    auto start = std::chrono::steady_clock::now();
     while (!stop) {
         auto current = std::chrono::steady_clock::now();
         czas = std::chrono::duration_cast<std::chrono::milliseconds>(current - start).count();
         std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
 }
-
 
 void Cost_List::RunTasks() {
     int TotalCost = 0;
@@ -337,20 +333,10 @@ void Cost_List::RunTasks() {
     bool stop = false; 
     int czas = 0;
     std::thread counterThread(Licznik, std::ref(stop), std::ref(czas));
-
-
-    for (Instance* i : Instances) {
-    threads.push_back(std::thread(&Cost_List::TaskRunner, this, *i));
-}
-
-
-
-    for (std::thread& thread : threads) {
-        thread.join();
-    }
+    for (Instance* i : Instances) threads.push_back(std::thread(&Cost_List::TaskRunner, this, *i));
+    for (std::thread& thread : threads) thread.join();
     stop = true;
     counterThread.join();
-
     std::cout << "\n\nCzas trwania programu: " << czas << " milisekund.\n\n";
 }
 
@@ -375,6 +361,15 @@ Hardware* Cost_List::getLowestTimeHardware(int task_id, int time_cost) const{
 }
 
 void Cost_List::createInstance(int task_ID, const Hardware* h) {
+    Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
+    HWInstancesCount[h->getID()]++;
+    newInst->addTask(task_ID);
+    Instances.push_back(newInst);
+    taskInstanceMap[task_ID] = newInst;
+}
+
+void Cost_List::createInstance(int task_ID) {
+    Hardware* h = getLowestTimeHardware(task_ID,0);
     Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
     HWInstancesCount[h->getID()]++;
     newInst->addTask(task_ID);
@@ -520,19 +515,86 @@ void Cost_List::TaskDistribution(int rule) {
             break;
         }
         case 5:{ //GREEDY
-            Hardware* FirstLowestTimeHW = getLowestTimeHardware(0,0);
+            Hardware* FirstLowestTimeHW = getLowestTimeHardware(0, 0);
+            std::set<int> allocatedTasks;
+            allocatedTasks.clear();
+            allocatedTasks.insert(0);
             int currTask = 0;
-            createInstance(currTask,FirstLowestTimeHW);
-            while(1){
-                //find longest running out neighbour
-                for(int i : TaskGraph.getNeighbourIndices(currTask)){
-                    Hardware* h  = getLowestTimeHardware(i,0);
-                    if(h == FirstLowestTimeHW){
-                        addTaskToInstance(i,Instances[0]);
+            Hardware* minHw;
+            std::stack<int> toCheck;
+            toCheck.push(0);
+            int max_task_id = 0;
+            int max_time;
+            createInstance(currTask, FirstLowestTimeHW);
+            while (!toCheck.empty()) {
+            max_time = 0;
+            for (int i : TaskGraph.getNeighbourIndices(currTask)) {
+                toCheck.push(i);
+                int curr_time = times.getTime(i,getLowestTimeHardware(i, 0));
+                if (curr_time > max_time) {
+                    max_time = curr_time;
+                    max_task_id = i;
+                }
+            }
+            if(allocatedTasks.find(max_task_id) == allocatedTasks.end()){
+                int lowestTimeHW = times.getTime(max_task_id,getLowestTimeHardware(max_task_id, 0));
+                for (Instance* ins : Instances) {
+                    if (getInstanceEndingTime(ins) < getStartingTime(max_task_id)) {
+                        addTaskToInstance(max_task_id, ins);
+                        allocatedTasks.insert(max_task_id);
+                        break; // Task assigned, no need to continue searching for instances
                     }
                 }
-
+                if (allocatedTasks.find(max_task_id) == allocatedTasks.end()) {
+                    createInstance(max_task_id);
+                    allocatedTasks.insert(max_task_id);
+                }
             }
+            
+            for (int i : TaskGraph.getNeighbourIndices(currTask)) {
+                if (i != max_task_id && allocatedTasks.find(i) == allocatedTasks.end()) {
+                    int lowestTimeHW = times.getTime(i,getLowestTimeHardware(i, 0));
+                    for (Instance* ins : Instances) {
+                        if (getInstanceEndingTime(ins) < getStartingTime(i)) {
+                        addTaskToInstance(i, ins);
+                        allocatedTasks.insert(i);
+                        break;
+                    }
+                    }
+                    if (allocatedTasks.find(i) == allocatedTasks.end()) {
+                        createInstance(i);
+                        allocatedTasks.insert(i);
+                    }
+                }
+            }
+            currTask = toCheck.top();
+            toCheck.pop();
+        }
+        }
+        case 6:{
+            createInstance(0);
+            int allocatedTasks[tasks_amount] = {0};
+            allocatedTasks[0] = 1;
+            for(int i : TaskGraph.BFS()){
+                for(Instance* ins : Instances){
+                    if(allocatedTasks[i] == 1){
+                        //std::cout << "Zadanie " << i << "juz zaalokowane\n";
+                        break;
+                    }
+                    //std::cout << "instancja konczy o " << getInstanceEndingTime(ins) << "a chce zaczac o " <<getStartingTime(i) << "wiec\n";
+                    if(getInstanceEndingTime(ins)<=getStartingTime(i)){
+                        //std::cout << "DOdaje!!!!!!\n";
+                        allocatedTasks[i] = 1;
+                        addTaskToInstance(i,ins);
+                    }
+                }
+                if(allocatedTasks[i] == 0){
+                    createInstance(i);
+                    //std::cout << "TWORZE MNOWE!!!!!!\n";
+                    allocatedTasks[i] = 1;
+                }
+            }
+            break;
         }
         default:{
             std::cerr << "Nieznana reguła dystrybucji zadań\n";
@@ -547,7 +609,8 @@ void Cost_List::TaskDistribution(int rule) {
             expTime += times.getTime(taskID, inst->getHardwarePtr());
             expCost += times.getCost(taskID, inst->getHardwarePtr());
         }
-        std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " koszt: " << expCost << "\n";
+        expCost += inst->getHardwarePtr()->getCost();
+        std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " koszt: " << expCost  << " w tym początkowy: " << inst->getHardwarePtr()->getCost() << "\n";
     }
     for(auto it = taskInstanceMap.begin(); it != taskInstanceMap.end(); ++it) {
         int task_id = it->first;
@@ -555,7 +618,6 @@ void Cost_List::TaskDistribution(int rule) {
         std::cout << "T" << task_id << " on " << inst << " Running from: " << getStartingTime(task_id) << " to :" << getEndingTime(task_id) << "\n";
     }
 }
-
 
 void Cost_List::TaskRunner(Instance i) {
     int taskCounter = 0;
@@ -589,21 +651,26 @@ void Cost_List::TaskRunner(Instance i) {
     return;
 }
 
+int Cost_List::getInstanceEndingTime(const Instance* inst){
+    int endingTime= 0;
+    for(int i : inst->getTaskSet()){
+        //std::cout << i << "_";
+        if(getEndingTime(i)>endingTime) endingTime = getEndingTime(i);
+    }
+    return endingTime;
+}
+
 std::vector<int> Cost_List::getLongestPath(int start) const {
         std::vector<std::vector<Edge>> adjList = TaskGraph.getAdjList();
         std::vector<int> dist(TaskGraph.getVerticesSize(), std::numeric_limits<int>::min());
         std::vector<int> inDegree(TaskGraph.getVerticesSize(), 0);
         std::queue<int> q;
-
-        // Obliczanie stopni wejściowych
         for (const auto& edges : adjList) {
             for (const auto& edge : edges) {
                 int v = edge.getV2();
                 inDegree[v]++;
             }
         }
-
-        // Dodawanie wierzchołków startowych (o stopniu wejściowym 0) do kolejki
         for (int i = 0; i < TaskGraph.getVerticesSize(); ++i) {
             if (inDegree[i] == 0)
                 q.push(i);
@@ -614,21 +681,16 @@ std::vector<int> Cost_List::getLongestPath(int start) const {
             int u = q.front();
             q.pop();
 
-            longestPath.push_back(u); // Dodaj bieżący wierzchołek do najdłuższej ścieżki
+            longestPath.push_back(u);
 
             for (const auto& edge : adjList[u]) {
                 int v = edge.getV2();
                 int w = times.getTime(edge.getV2(),getLowestTimeHardware(edge.getV2(),0));
 
-                // Aktualizacja odległości do wierzchołka v
                 if (dist[u] + w > dist[v]) {
                     dist[v] = dist[u] + w;
                 }
-
-                // Dekrementacja stopnia wejściowego dla wierzchołka v
                 inDegree[v]--;
-
-                // Dodanie wierzchołka v do kolejki, jeśli jego stopień wejściowy wynosi 0
                 if (inDegree[v] == 0)
                     q.push(v);
             }
@@ -642,43 +704,49 @@ Instance* Cost_List::getInstance(int task_id){
     if (it != taskInstanceMap.end()) {
         return it->second;
     } else {
-        std::cerr << "blad dystrybutora zadan" << std::endl;
+        std::cerr << "blad dystrybutora zadan dla zadania " << task_id <<  std::endl;
         return nullptr;
     }
 }
 
-int Cost_List::getStartingTime(int task_id){
-    if(task_id ==0) return 0;
+int Cost_List::getStartingTime(int task_id) {
+    //std::cout << " DLA T: " << task_id << "__";
+    if(task_id == 0) return 0;
     int lowestTime = std::numeric_limits<int>::max();
     std::vector<int> bestPath;
-    for(std::vector<int> path : TaskGraph.DFS(0, task_id)) {
-        int pathTime = 0;
-        for(int t_id : path) {
-            pathTime += times.getTime(t_id,getInstance(t_id)->getHardwarePtr());
-        }
-        if(pathTime < lowestTime) {
-            lowestTime = pathTime;
-            bestPath = path;
+    for (std::vector<int> path : TaskGraph.DFS(0, task_id)) {
+    int pathTime = 0;
+    bool skipPath = false; // Flaga wskazująca, czy należy pominąć bieżącą ścieżkę
+    for (int t_id : path) {
+        if (t_id == task_id) {
+            break; // Kończymy przetwarzanie ścieżki, jeśli dotarliśmy do szukanego zadania
+        } else {
+            //std::cout << "ODWIEDZAM " << t_id << "\n";
+            const Instance* inst = getInstance(t_id);
+            if (inst == nullptr) {
+                skipPath = true;
+                std::cout << " PRZERYWAM T" << task_id << "//";
+                break;
+            }
+            const Hardware* hardwarePtr = inst->getHardwarePtr();
+            pathTime += times.getTime(t_id, hardwarePtr);
         }
     }
-    int selfRunningTime = times.getTime(task_id,getInstance(task_id)->getHardwarePtr());
-    return lowestTime - selfRunningTime;
+    if (skipPath) {
+        continue; // Przechodzimy do następnej ścieżki, pomijając aktualną
+    }
+    if (pathTime < lowestTime) {
+        lowestTime = pathTime;
+        bestPath = path;
+    }
+    }
+    return lowestTime;
 }
+
 
 int Cost_List::getEndingTime(int task_id){
     int runningTime = times.getTime(task_id,getInstance(task_id)->getHardwarePtr());
     return getStartingTime(task_id) + runningTime;
-}
-
-int Cost_List::getInstanceEndingTime(const Instance* inst){
-    int maxTime =0;
-    int end_time = 0;
-    for(int i : inst->getTaskSet()){
-        std::cout << " Dla  " << *inst << " sciezka" << i << "\n";
-        end_time = getEndingTime(i);
-        if(end_time>maxTime) maxTime = end_time;
-    }
-    return maxTime;
 }
 
 // std::mutex removeMutex;

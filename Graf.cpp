@@ -104,10 +104,9 @@ void Graf::DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, st
     visited[v] = true;
     path.push_back(v);
 
-    if (v == destination) { // Jeśli dotarliśmy do wierzchołka docelowego, zapisujemy bieżącą ścieżkę do wszystkich ścieżek
+    if (v == destination) {
         allPaths.push_back(path);
     } else {
-        // W przeciwnym razie kontynuujemy przeszukiwanie dla wszystkich sąsiadów bieżącego wierzchołka
         std::vector<int> neighbours = getNeighbourIndices(v);
         for (int u : neighbours) {
             if (!visited[u]) {
@@ -115,8 +114,6 @@ void Graf::DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, st
             }
         }
     }
-
-    // Wycofujemy się z wierzchołka bieżącego, aby umożliwić przeszukiwanie innych możliwych ścieżek
     path.pop_back();
     visited[v] = false;
 }
@@ -130,4 +127,28 @@ std::vector<std::vector<int>> Graf::DFS(int start, int end)  {
     DFSUtil(start, visited, path, allPaths);
 
     return allPaths;
+}
+
+std::vector<int> Graf::BFS() {
+    std::vector<int> bfsOrder;
+    std::vector<bool> visited(getVerticesSize(), false);
+    std::queue<int> q;
+    q.push(0);
+    visited[0] = true;
+
+    while (!q.empty()) {
+        int current = q.front();
+        q.pop();
+        bfsOrder.push_back(current);
+
+        std::vector<int> neighbours = getNeighbourIndices(current);
+        for (int neighbour : neighbours) {
+            if (!visited[neighbour]) {
+                q.push(neighbour);
+                visited[neighbour] = true;
+            }
+        }
+    }
+
+    return bfsOrder;
 }

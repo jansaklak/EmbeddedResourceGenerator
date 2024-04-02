@@ -37,6 +37,7 @@ Cost_List generateRandomCostList(){
 int main(){
     int menu,to_screen;
     int running = 1;
+    int sim;
     srand (time(NULL));
     to_screen = 0;
     Cost_List lista;
@@ -56,12 +57,18 @@ int main(){
             std::cout << "Wybierz podział zadań:\n 1-najszybciej 2-najtaniej 3-rownomiernie ";
             std::cin >> strategy;
             lista.TaskDistribution(strategy);
-            lista.RunTasks();
+
+            std::cout << "Czy przeprowadzić symulacje? 0/1";
+            std::cin >> sim;
+            if(sim) lista.RunTasks();
         }
         else if(menu == 5){
+            
             lista.Load_From_File("graph20.dat");
-            lista.TaskDistribution(5);
-            lista.RunTasks();
+            lista.TaskDistribution(6);
+            std::cout << "Czy przeprowadzić symulacje? 0/1";
+            std::cin >> sim;
+            if(sim) lista.RunTasks();
         }
         else if(menu == 9){
             running = 0;

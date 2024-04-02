@@ -26,6 +26,7 @@ public:
     }
     
     const std::unordered_set<int>& getTaskSet() const { return taskSet; }
+
     void addTask(int task) { 
         taskSet.insert(task); 
         }

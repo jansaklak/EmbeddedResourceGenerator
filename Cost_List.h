@@ -54,11 +54,12 @@ class Cost_List{
         int getEndingTime(int task_id);
         void addTaskToInstance(int task_ID,Instance* inst);
         void removeTaskFromInstance(int task_ID);
-        int getInstanceEndingTime(const Instance* inst);
         void PrintALL(std::string filename,bool toScreen) const;
         Hardware* getLowestTimeHardware(int task_id, int time_cost) const;
         std::vector<int> getLongestPath(int start) const;
         void createInstance(int task_ID,const Hardware* h);
+        void createInstance(int task_ID);
+        int getInstanceEndingTime(const Instance* inst);
         void Load_From_File(const std::string& filename);
         std::vector<Hardware> getHardwares() const;
         std::vector<COM> getCOMS() const;
