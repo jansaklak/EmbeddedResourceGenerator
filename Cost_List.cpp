@@ -602,6 +602,7 @@ void Cost_List::TaskDistribution(int rule) {
     }
     std::sort(Instances.begin(), Instances.end());
     std::cout << "Stworzono " << Instances.size() << " komponentów\n";
+    int criticalTime =0;
     for (const Instance* inst : Instances) {
         int expTime = 0;
         int expCost = 0;
@@ -612,11 +613,18 @@ void Cost_List::TaskDistribution(int rule) {
         expCost += inst->getHardwarePtr()->getCost();
         std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " koszt: " << expCost  << " w tym początkowy: " << inst->getHardwarePtr()->getCost() << "\n";
     }
+    int task_id;
+    int task_time;
     for(auto it = taskInstanceMap.begin(); it != taskInstanceMap.end(); ++it) {
-        int task_id = it->first;
+        task_id = it->first;
         const Instance& inst = *(it->second);
-        std::cout << "T" << task_id << " on " << inst << " Running from: " << getStartingTime(task_id) << " to :" << getEndingTime(task_id) << "\n";
+        task_time = getEndingTime(task_id);
+        std::cout << "T" << task_id << " on " << inst << " Running from: " << getStartingTime(task_id) << " to :" << task_time << "\n";
+        if(getEndingTime(task_id)>criticalTime){
+            criticalTime = task_time;
+        }
     }
+    std::cout << "\tCzas ścieżki krytycznej: " << criticalTime << '\n';
 }
 
 void Cost_List::TaskRunner(Instance i) {
@@ -725,7 +733,7 @@ int Cost_List::getStartingTime(int task_id) {
             const Instance* inst = getInstance(t_id);
             if (inst == nullptr) {
                 skipPath = true;
-                //std::cout << " PRZERYWAM T" << task_id << "//";
+                std::cout << " PRZERYWAM T" << task_id << "//";
                 break;
             }
             const Hardware* hardwarePtr = inst->getHardwarePtr();
