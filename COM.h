@@ -23,7 +23,7 @@ public:
     int getBandwidth() const;
     int getCost() const;
     bool isConnected(const Hardware* other) const;
-    void PrintCOM(int hw_size,std::ostream& out) const;
+    void printCOM(int hw_size,std::ostream& out) const;
 
 };
 

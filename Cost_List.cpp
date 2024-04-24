@@ -10,7 +10,16 @@
 #include <mutex>
 #include <algorithm>
 #include <map>
-#define INF 2147483647
+
+
+void Licznik(bool& stop, int& czas) {
+    auto start = std::chrono::steady_clock::now();
+    while (!stop) {
+        auto current = std::chrono::steady_clock::now();
+        czas = std::chrono::duration_cast<std::chrono::milliseconds>(current - start).count();
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+}
 
 bool randomBool(int prob) {
     prob++;
@@ -41,28 +50,41 @@ Cost_List::~Cost_List() {
 
 }
 
-Cost_List::Cost_List(){
+Cost_List::Cost_List(){ 
     tasks_amount = 0;
     hardware_cores_amount = 0;
     processing_unit_amount = 0;
     channels_amount = 0;
     with_cost = 0;
+    clear();
 }
 
 Cost_List::Cost_List(int _tasks, int _hcores, int _punits, int _channels, int _withCost)
     : tasks_amount(_tasks), hardware_cores_amount(_hcores),
     processing_unit_amount(_punits), channels_amount(_channels),
     with_cost(_withCost) {
+        clear();
+        //std::cout << "Tworze tablice kosztow z task_amount:" << tasks_amount << "hc" << hardware_cores_amount << "pu" <<processing_unit_amount << "ch" << channels_amount << "with_cost" << with_cost;
+}
+
+void Cost_List::clear(){
     Hardwares.clear();
     Channels.clear();
     times = Times();
+    TaskGraph = Graf();
+    HWInstancesCount.clear();
+    Instances.clear();
+    taskInstanceMap.clear();
+    HWtoTasks.clear();
+    task_schedule.clear();
 }
 
-void Cost_List::Load_From_File(const std::string& filename) {
+int Cost_List::Load_From_File(const std::string& filename) {
+    clear();
+    tasks_amount = 0;
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cout << "Nie udalo sie otworzyc pliku." << std::endl;
-        return;
+        return -1;
     }
     std::string line;
     int section = -1;
@@ -101,6 +123,7 @@ void Cost_List::Load_From_File(const std::string& filename) {
                     while (ss >> to >> c >> weight >> c) {
                         if(weight == 0) weight = 1;
                         loaded.addEdge(Tnum,to,weight);
+                        tasks_amount++;
                     }
                 }
             }
@@ -152,19 +175,25 @@ void Cost_List::Load_From_File(const std::string& filename) {
                 times.setTimesMatrix(times_matrix);
                 times.setCostsMatrix(costs_matrix);
                 TaskGraph = loaded;
-                std::ofstream matrix_file("matrix.dat");
-                if (!matrix_file.is_open()) {
-                    std::cout << "Nie udało sis otworzyć pliku." << std::endl;
-                    return;
-                }
-                TaskGraph.printMatrix(matrix_file);
+                // std::ofstream matrix_file("matrix.dat");
+                // if (!matrix_file.is_open()) {
+                //     return -1;
+                // }
+                // TaskGraph.printMatrix(matrix_file);
             }
         }
     }
+    tasks_amount--;
     file.close();
+    return 1;
 }
 
-void Cost_List::CreateRandomTasksGraph() {
+void Cost_List::createRandomTasksGraph() {
+    if (tasks_amount <= 1) {
+        std::cerr << "Błędna liczba zadań";
+        return;
+    }
+    std::cout << "TWORZĘ WYKRES DO " << tasks_amount << std::endl;
     std::set<int> visited;
     Graf G;
     if (with_cost) {
@@ -188,7 +217,15 @@ void Cost_List::CreateRandomTasksGraph() {
 
     for (int i = 0; i < tasks_amount; ++i) {
         if (visited.find(i) == visited.end()) {
-            int random_visited_task = *visited.begin();
+            std::cout << "NIE DODANO " << i << std::endl;
+            int idx = rand() % visited.size();
+            auto it = visited.begin();
+            for (int k = 0; k < idx; k++) {
+                it++;
+            }
+            int random_visited_task = *it;
+            std::cout << "RANDOM VISITED = " << random_visited_task << "\n";
+
             if (!G.checkEdge(random_visited_task, i)) {
                 if (with_cost) {
                     G.addEdge(random_visited_task, i, getRand(SCALE));
@@ -199,20 +236,18 @@ void Cost_List::CreateRandomTasksGraph() {
             }
         }
     }
-        TaskGraph = G;
-    std::ofstream matrix_file("matrix.dat");
-        if (!matrix_file.is_open()) {
-            std::cout << "Nie udało sis otworzyć pliku." << std::endl;
-            return;
-        }
-    TaskGraph.printMatrix(matrix_file);
+    //std::cout << "tutut***" << std::endl;
+    visited.clear();
+    TaskGraph = G;
+    //std::cout << "SKOŃCZYŁEM" << std::endl;
     return;
 }
 
+
 void Cost_List::printTasks(std::ostream& out) const{
-    out << "@tasks " << TaskGraph.getVerticesSize() << std::endl;
+    out << "@tasks " << tasks_amount << std::endl;
     std::vector<int> outIdx;
-    int size = TaskGraph.getVerticesSize();
+    int size = tasks_amount;
     for(int i = 0; i < size; i++) {
         outIdx = TaskGraph.getOutNeighbourIndices(i);
         out << "T" << i << " ";
@@ -224,119 +259,172 @@ void Cost_List::printTasks(std::ostream& out) const{
     }
 }
 
-void Cost_List::PrintCOMS(std::ostream& out) const{
+void Cost_List::printCOMS(std::ostream& out) const{
     out << "@comm " << Channels.size() <<"\n";
     for(COM c : Channels){
-        c.PrintCOM(Hardwares.size(),out);
+        c.printCOM(Hardwares.size(),out);
     }
 }
 
-void Cost_List::PrintProc(std::ostream& out) const{
+void Cost_List::printProc(std::ostream& out) const{
     out << "@proc " << Hardwares.size() << std::endl;
     for (Hardware h : Hardwares) {
-        h.PrintHW(out);
+        h.printHW(out);
          out << std::endl;
     }
 }
 
-void Cost_List::RandALL(){
-    CreateRandomTasksGraph();
-    getRandomProc();
-    times = Times(TaskGraph.getVerticesSize(),Hardwares);
-    times.SetRandomTimesAndCosts();
-    ConnectRandomCH();
+void Cost_List::printInstances(){
+    std::sort(Instances.begin(), Instances.end());
+    std::cout << "Stworzono " << Instances.size() << " komponentów\n";
+    int criticalTime =0;
+    int task_id;
+    int task_time;
+
+    for(auto it = taskInstanceMap.begin(); it != taskInstanceMap.end(); ++it) {
+        task_id = it->first;
+        if(getEndingTime(task_id)>criticalTime){
+            task_time = getEndingTime(task_id);
+            criticalTime = task_time;
+        }
+    }
+
+    for (const Instance* inst : Instances) {
+        int expTime = 0;
+        int expCost = 0;
+        for (int taskID : inst->getTaskSet()) {
+            expTime += times.getTime(taskID, inst->getHardwarePtr());
+            expCost += times.getCost(taskID, inst->getHardwarePtr());
+        }
+        expCost += inst->getHardwarePtr()->getCost();
+        std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " Bezczynnosci: " << getIdleTime(inst,criticalTime) << " koszt: " << expCost  << " w tym początkowy: " << inst->getHardwarePtr()->getCost() << "\n";
+    }
+
+    // for(auto it = taskInstanceMap.begin(); it != taskInstanceMap.end(); ++it) {
+    //     task_id = it->first;
+    //     const Instance& inst = *(it->second);
+    //     task_time = getEndingTime(task_id);
+    //     std::cout << "T" << task_id << " na " << inst << " Od: " << getStartingTime(task_id) << " do :" << task_time << "\n";
+    // }
+    // std::cout << "\tCzas ścieżki krytycznej: " << criticalTime << '\n';
+    printSchedule();
+    int criticTime = 0;
+    for(int t = 0; t<tasks_amount;t++){
+        std::cout  << "T" << t << "\tna " << *getInstance(t) << " od:" << task_schedule[t].first <<" do:" << task_schedule[t].second << std::endl;
+        if(criticTime<task_schedule[t].second) criticTime = task_schedule[t].second;
+
+    }
+    std::cout << "Czas scieżki krytycznej: " << criticTime << std::endl;
 }
 
-void Cost_List::PrintALL(std::string filename,bool toScreen) const{
-    std::ofstream outputFile(filename, std::ofstream::trunc); 
+void Cost_List::randALL(){
+    times = Times(tasks_amount);
+    //std::cout << "10%";
+    createRandomTasksGraph();
+    //std::cout << "20%";
+    //if(getRandomProc() ==1 ) std::cout << "30%";
+    getRandomProc();
+    times.LoadHW(Hardwares);
+    //std::cout << "40%";
+    times.setRandomTimesAndCosts();
+    //std::cout << "50%";
+    connectRandomCH();
+    //std::cout << "60%";
+}
+
+void Cost_List::printALL(std::string filename,bool toScreen) const{
+    std::ofstream outputFile(filename, std::ofstream::trunc);
     if (outputFile.is_open()) {
-        std::ofstream outputFileMatrix("matrix.dat", std::ofstream::trunc); 
-        TaskGraph.printMatrix(outputFileMatrix);
+        // std::ofstream outputFileMatrix("matrix.dat", std::ofstream::trunc);
+        // TaskGraph.printMatrix(outputFileMatrix);
     //@tasks
         if(toScreen) printTasks();
         printTasks(outputFile);
     //@proc
-        if(toScreen) PrintProc();
-        PrintProc(outputFile);
+        if(toScreen) printProc();
+        printProc(outputFile);
     //@times @cost
         if(toScreen) times.show();
         times.show(outputFile);
     //@coms
-        PrintCOMS(outputFile);
-        if(toScreen) PrintCOMS();
+        printCOMS(outputFile);
+        if(toScreen) printCOMS();
         outputFile.close();
         std::cout << "Zapisano liste do pliku " << filename << std::endl;
-    } 
+    }
     else {
         std::cerr << "Nie można otworzyć pliku do zapisu." << std::endl;
         return;
     }
 }
 
-void Cost_List::getRandomProc() {
+int Cost_List::getRandomProc() {
+    Hardwares.clear();
+    if(hardware_cores_amount < 1 || processing_unit_amount < 1){
+        std::cerr << "Błedna liczba HC lub PU\n";
+        return -1;
+    }
     for(int i = 0; i<hardware_cores_amount;i++){
         Hardwares.push_back(Hardware(getRand(5)+1,Hardware_Type::HC,Hardwares.size()));
     }
-    int HC_size = Hardwares.size();
-    for(int i = 0; i<processing_unit_amount;i++){
+    int HC_size = hardware_cores_amount;
+    for(int j = 0; j<processing_unit_amount;j++){
         Hardwares.push_back(Hardware(getRand(5)+1,Hardware_Type::PE,Hardwares.size()-HC_size));
+    }
+    return 1;
+}
+
+void Cost_List::connectRandomCH(){
+    if(channels_amount < 1){
+        std::cerr<< "Zła liczba kanałów";
+        return;
+    }
+    for(int i = 0; i<channels_amount;i++){
+        int bd = ((getRand(9)+1)*10);
+        int con_cost = (getRand(9)+1)*5;
+        int rd;
+        COM c = COM(bd,con_cost,Channels.size());
+        for(Hardware h : Hardwares){
+            if(randomBool(i+1)){
+                c.add_Hardware(&h);
+            }
+        }
+        while(c.getSize()<3){
+                rd = getRand(Hardwares.size());
+                c.add_Hardware(&Hardwares[rd]);
+        }
+        Channels.push_back( c );
+    }
+    for(Hardware h : Hardwares){
+        bool All_connected = false;
+        for(COM c : Channels){
+            if(c.isConnected(&h)){
+                All_connected = true;
+            }
+        }
+        if(All_connected == false){
+                Channels[0].add_Hardware(&h);
+            }
+        //std::cout << " ROBIE";
     }
     return;
 }
 
-void Cost_List::ConnectRandomCH(){
-            for(int i = 0; i<channels_amount;i++){
-                int bd = ((getRand(9)+1)*10);
-                int con_cost = (getRand(9)+1)*5;
-                int rd;
-                COM c = COM(bd,con_cost,Channels.size());
-                for(Hardware h : Hardwares){
-                    if(randomBool(i+1)){
-                        c.add_Hardware(&h);
-                    }
-                }
-                while(c.getSize()<3){
-                        rd = getRand(Hardwares.size());
-                        c.add_Hardware(&Hardwares[rd]);
-                }
-                Channels.push_back( c );
-            }
-            for(Hardware h : Hardwares){
-                bool All_connected = false;
-                for(COM c : Channels){
-                    if(c.isConnected(&h)){
-                        All_connected = true;
-                    }
-                }
-                if(All_connected == false){
-                        Channels[0].add_Hardware(&h);
-                    }
-            }
-}
-
-void Licznik(bool& stop, int& czas) {
-    auto start = std::chrono::steady_clock::now();
-    while (!stop) {
-        auto current = std::chrono::steady_clock::now();
-        czas = std::chrono::duration_cast<std::chrono::milliseconds>(current - start).count();
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
-    }
-}
-
-void Cost_List::RunTasks() {
+void Cost_List::runTasks() {
     int TotalCost = 0;
     std::cout << "\nUruchamiam zadania:\n";
     progress.resize(TaskGraph.getVerticesSize(), -2); // -2 - cant be done flag
     progress[0] = -1;
     std::vector<std::thread> threads;
     int numThreads = Instances.size();
-    bool stop = false; 
+    bool stop = false;
     int czas = 0;
     std::thread counterThread(Licznik, std::ref(stop), std::ref(czas));
     for (Instance* i : Instances) threads.push_back(std::thread(&Cost_List::TaskRunner, this, *i));
     for (std::thread& thread : threads) thread.join();
     stop = true;
     counterThread.join();
+    threads.clear();
     std::cout << "\n\nCzas trwania programu: " << czas << " milisekund.\n\n";
 }
 
@@ -389,244 +477,6 @@ void Cost_List::removeTaskFromInstance(int task_ID){
     taskInstanceMap[task_ID] = nullptr;
 }
 
-void Cost_List::TaskDistribution(int rule) {
-    int estimatedCost = 0;
-    int estimatedTime = 0;
-    TotalCost = 0;
-    int tasks_amount = TaskGraph.getVerticesSize();
-
-    // std::cout << "Porządek topologiczny: * - stan końcowy, () - czas na najszybszym HW\n";
-    // for(int i : getLongestPath(0)){
-    //     std::cout << i <<"(" << times.getTime(i,getLowestTimeHardware(i,0)) <<")";
-    //     if(TaskGraph.getOutNeighbourIndices(i).size()==0){
-    //         std::cout <<"*";
-    //     }
-    //     std::cout <<"-";
-    // }
-    // std::cout << "\n";
-
-    switch (rule) {
-        case 0:{
-            for (int task_id = 0; task_id < tasks_amount; ++task_id) {
-                Hardware* hw = getLowestTimeHardware(task_id,0);
-                createInstance(task_id,hw);
-                estimatedCost += times.getCost(task_id, hw);
-            }
-            break;
-        }
-        case 1:{
-            for (int task_id = 0; task_id < tasks_amount; ++task_id) {
-                Hardware* hw = getLowestTimeHardware(task_id,1);
-                createInstance(task_id,hw);
-                estimatedCost += times.getCost(task_id, hw);
-            }
-
-            break;
-        }
-        case 2:{
-            for (int task_id = 0; task_id < tasks_amount; ++task_id) {
-                int min_time = 2000000;
-                Hardware* hw = getLowestTimeHardware(task_id,0);
-
-                bool foundInstance = false;
-                for (Instance* inst : Instances) {
-                    if (inst->getHardwarePtr() == hw) {
-                        addTaskToInstance(task_id,inst);
-                        foundInstance = true;
-                        break;
-                    }
-                }
-                if (!foundInstance) {
-                    createInstance(task_id,hw);
-                }
-                estimatedCost += times.getCost(task_id, hw);
-            }
-            break;
-        }
-        case 3:{
-            for (int task_id = 0; task_id < tasks_amount; ++task_id) {
-                int min_time = 2000000;
-                Hardware* hw = getLowestTimeHardware(task_id,1);
-
-                bool foundInstance = false;
-                for (Instance* inst : Instances) {
-                    if (inst->getHardwarePtr() == hw) {
-                        addTaskToInstance(task_id,inst);
-                        foundInstance = true;
-                        break;
-                    }
-                }
-                if (!foundInstance) {
-                    createInstance(task_id,hw);
-                }
-                estimatedCost += times.getCost(task_id, hw);
-            }
-            break;
-        }
-        case 4:{
-            bool allocated_tasks[tasks_amount] = {false};
-            int currTask = 0;
-            int min_time = 2000000;
-            Hardware* lowestTimeHW = getLowestTimeHardware(0,0);
-            createInstance(0,lowestTimeHW);
-            allocated_tasks[0] = 1; 
-            std::vector<int> currSet = TaskGraph.getOutNeighbourIndices(currTask);
-            while(currSet.size() != 0){
-                currSet = TaskGraph.getOutNeighbourIndices(currTask);
-                min_time = 0;
-                for(int t : currSet){
-                    if(times.getTime(t,lowestTimeHW)>min_time){
-                        min_time = times.getTime(t,lowestTimeHW);
-                        currTask = t;
-                    }
-                }
-                if(allocated_tasks[currTask] == 0){
-                    addTaskToInstance(currTask,Instances[0]);
-                    allocated_tasks[currTask] = 1;
-                }
-                
-                for(int t : currSet){
-                    if(allocated_tasks[t] == 0){
-                        createInstance(t,getLowestTimeHardware(t,0));
-                        allocated_tasks[t] = 1;
-                    }
-                }
-                
-            }
-            for(int i=0;i<tasks_amount;i++){
-                if(allocated_tasks[i]==0){
-                    createInstance(i,getLowestTimeHardware(i,0));
-                    allocated_tasks[i] = 1;
-                    //std::cout << "DODAJE " << i << " zad\n";
-                }
-            }
-            int minStartTime = INF;
-            int newInstTask = 0;
-            bool foundOtherInst = false;
-            for(int i=0;i<tasks_amount;i++){
-                for(Instance* ins : Instances){
-                    if (getStartingTime(i) < getInstanceEndingTime(ins)) {
-                        removeTaskFromInstance(i);
-                        addTaskToInstance(i, ins);
-                    }
-                }
-                }
-            
-            break;
-        }
-        case 5:{ //GREEDY
-            Hardware* FirstLowestTimeHW = getLowestTimeHardware(0, 0);
-            std::set<int> allocatedTasks;
-            allocatedTasks.clear();
-            allocatedTasks.insert(0);
-            int currTask = 0;
-            Hardware* minHw;
-            std::stack<int> toCheck;
-            toCheck.push(0);
-            int max_task_id = 0;
-            int max_time;
-            createInstance(currTask, FirstLowestTimeHW);
-            while (!toCheck.empty()) {
-            max_time = 0;
-            for (int i : TaskGraph.getNeighbourIndices(currTask)) {
-                toCheck.push(i);
-                int curr_time = times.getTime(i,getLowestTimeHardware(i, 0));
-                if (curr_time > max_time) {
-                    max_time = curr_time;
-                    max_task_id = i;
-                }
-            }
-            if(allocatedTasks.find(max_task_id) == allocatedTasks.end()){
-                int lowestTimeHW = times.getTime(max_task_id,getLowestTimeHardware(max_task_id, 0));
-                for (Instance* ins : Instances) {
-                    if (getInstanceEndingTime(ins) < getStartingTime(max_task_id)) {
-                        addTaskToInstance(max_task_id, ins);
-                        allocatedTasks.insert(max_task_id);
-                        break; // Task assigned, no need to continue searching for instances
-                    }
-                }
-                if (allocatedTasks.find(max_task_id) == allocatedTasks.end()) {
-                    createInstance(max_task_id);
-                    allocatedTasks.insert(max_task_id);
-                }
-            }
-            
-            for (int i : TaskGraph.getNeighbourIndices(currTask)) {
-                if (i != max_task_id && allocatedTasks.find(i) == allocatedTasks.end()) {
-                    int lowestTimeHW = times.getTime(i,getLowestTimeHardware(i, 0));
-                    for (Instance* ins : Instances) {
-                        if (getInstanceEndingTime(ins) < getStartingTime(i)) {
-                        addTaskToInstance(i, ins);
-                        allocatedTasks.insert(i);
-                        break;
-                    }
-                    }
-                    if (allocatedTasks.find(i) == allocatedTasks.end()) {
-                        createInstance(i);
-                        allocatedTasks.insert(i);
-                    }
-                }
-            }
-            currTask = toCheck.top();
-            toCheck.pop();
-        }
-        }
-        case 6:{
-            createInstance(0);
-            int allocatedTasks[tasks_amount] = {0};
-            allocatedTasks[0] = 1;
-            for(int i : TaskGraph.BFS()){
-                for(Instance* ins : Instances){
-                    if(allocatedTasks[i] == 1){
-                        //std::cout << "Zadanie " << i << "juz zaalokowane\n";
-                        break;
-                    }
-                    //std::cout << "instancja konczy o " << getInstanceEndingTime(ins) << "a chce zaczac o " <<getStartingTime(i) << "wiec\n";
-                    if(getInstanceEndingTime(ins)<=getStartingTime(i)){
-                        //std::cout << "DOdaje!!!!!!\n";
-                        allocatedTasks[i] = 1;
-                        addTaskToInstance(i,ins);
-                    }
-                }
-                if(allocatedTasks[i] == 0){
-                    createInstance(i);
-                    //std::cout << "TWORZE MNOWE!!!!!!\n";
-                    allocatedTasks[i] = 1;
-                }
-            }
-            break;
-        }
-        default:{
-            std::cerr << "Nieznana reguła dystrybucji zadań\n";
-            break;}
-    }
-    std::sort(Instances.begin(), Instances.end());
-    std::cout << "Stworzono " << Instances.size() << " komponentów\n";
-    int criticalTime =0;
-    for (const Instance* inst : Instances) {
-        int expTime = 0;
-        int expCost = 0;
-        for (int taskID : inst->getTaskSet()) {
-            expTime += times.getTime(taskID, inst->getHardwarePtr());
-            expCost += times.getCost(taskID, inst->getHardwarePtr());
-        }
-        expCost += inst->getHardwarePtr()->getCost();
-        std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " koszt: " << expCost  << " w tym początkowy: " << inst->getHardwarePtr()->getCost() << "\n";
-    }
-    int task_id;
-    int task_time;
-    for(auto it = taskInstanceMap.begin(); it != taskInstanceMap.end(); ++it) {
-        task_id = it->first;
-        const Instance& inst = *(it->second);
-        task_time = getEndingTime(task_id);
-        std::cout << "T" << task_id << " on " << inst << " Running from: " << getStartingTime(task_id) << " to :" << task_time << "\n";
-        if(getEndingTime(task_id)>criticalTime){
-            criticalTime = task_time;
-        }
-    }
-    std::cout << "\tCzas ścieżki krytycznej: " << criticalTime << '\n';
-}
-
 void Cost_List::TaskRunner(Instance i) {
     int taskCounter = 0;
     const Hardware* running_hw = i.getHardwarePtr();
@@ -636,7 +486,7 @@ void Cost_List::TaskRunner(Instance i) {
             if (progress[t] == -1) {
                 int time = times.getTime(t, running_hw);
                 {
-                    std::cout << ""<< t << " on " << i << std::endl;
+                    std::cout << "T"<< t << " on " << i << std::endl;
                     progress[t] = 0;
                     for (int i = 1; i < time+1; ++i) {
                         progress[t] = (((i + 1) * 100) / time);
@@ -659,13 +509,37 @@ void Cost_List::TaskRunner(Instance i) {
     return;
 }
 
-int Cost_List::getInstanceEndingTime(const Instance* inst){
-    int endingTime= 0;
-    for(int i : inst->getTaskSet()){
-        //std::cout << i << "_";
-        if(getEndingTime(i)>endingTime) endingTime = getEndingTime(i);
+void Cost_List::printSchedule() {
+    int instance_ending_time;
+    for(Instance* i : Instances) {
+        instance_ending_time = 0;
+        int alltasks = i->getTaskSet().size();
+        for (int t : i->getTaskSet()) {
+                int time = times.getTime(t, i->getHardwarePtr());
+                if(instance_ending_time<=getStartingTime(t)){
+                    //std::cout << "dla " << t << "ZAMIENIAN " << instance_ending_time << " NA" << getStartingTime(t) << "\n";
+                    instance_ending_time = getStartingTime(t);
+
+                }
+                std::pair<int,int> timeRunning = {instance_ending_time,instance_ending_time+time};
+                task_schedule.insert({t,timeRunning});
+                //std::cout << "od" <<timeRunning.first << "do" << timeRunning.second <<"\n";
+
+                instance_ending_time += time;
+                //std::cout << "instancja konczy o " << instance_ending_time << "\n";
+        }
     }
-    return endingTime;
+
+    // std::cout << "Porządek topologiczny: * - stan końcowy, () - czas na najszybszym HW\n";
+    // for(int i : getLongestPath(0)){
+    //     std::cout << i <<"(" << times.getTime(i,getLowestTimeHardware(i,0)) <<")";
+    //     if(TaskGraph.getOutNeighbourIndices(i).size()==0){
+    //         std::cout <<"*";
+    //     }
+    //     std::cout <<"-";
+    // }
+    std::cout << "\n";
+    return;
 }
 
 std::vector<int> Cost_List::getLongestPath(int start) const {
@@ -723,30 +597,30 @@ int Cost_List::getStartingTime(int task_id) {
     int lowestTime = std::numeric_limits<int>::max();
     std::vector<int> bestPath;
     for (std::vector<int> path : TaskGraph.DFS(0, task_id)) {
-    int pathTime = 0;
-    bool skipPath = false; // Flaga wskazująca, czy należy pominąć bieżącą ścieżkę
-    for (int t_id : path) {
-        if (t_id == task_id) {
-            break; // Kończymy przetwarzanie ścieżki, jeśli dotarliśmy do szukanego zadania
-        } else {
-            //std::cout << "ODWIEDZAM " << t_id << "\n";
-            const Instance* inst = getInstance(t_id);
-            if (inst == nullptr) {
-                skipPath = true;
-                std::cout << " PRZERYWAM T" << task_id << "//";
-                break;
+        int pathTime = 0;
+        bool skipPath = false; // Flaga wskazująca, czy należy pominąć bieżącą ścieżkę
+        for (int t_id : path) {
+            if (t_id == task_id) {
+                break; // Kończymy przetwarzanie ścieżki, jeśli dotarliśmy do szukanego zadania
+            } else {
+                //std::cout << "ODWIEDZAM " << t_id << "\n";
+                const Instance* inst = getInstance(t_id);
+                if (inst == nullptr) {
+                    skipPath = true;
+                    //std::cout << " PRZERYWAM T" << task_id << "//";
+                    break;
+                }
+                const Hardware* hardwarePtr = inst->getHardwarePtr();
+                pathTime += times.getTime(t_id, hardwarePtr);
             }
-            const Hardware* hardwarePtr = inst->getHardwarePtr();
-            pathTime += times.getTime(t_id, hardwarePtr);
         }
-    }
-    if (skipPath) {
-        continue; // Przechodzimy do następnej ścieżki, pomijając aktualną
-    }
-    if (pathTime < lowestTime) {
-        lowestTime = pathTime;
-        bestPath = path;
-    }
+        if (skipPath) {
+            continue; // Przechodzimy do następnej ścieżki, pomijając aktualną
+        }
+        if (pathTime < lowestTime) {
+            lowestTime = pathTime;
+            bestPath = path;
+        }
     }
     return lowestTime;
 }
@@ -797,5 +671,5 @@ int Cost_List::getEndingTime(int task_id){
 //         }
 //         std::this_thread::sleep_for(std::chrono::milliseconds(500));
 //     }
-    
+
 // }

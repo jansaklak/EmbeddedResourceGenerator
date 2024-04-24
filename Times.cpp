@@ -8,24 +8,41 @@
 
 
 Times::Times(){
+    clear();
     return;
 }
-Times::Times(int _size, std::vector<Hardware> _HW_vec) {
-    graph_size = _size;
+
+void Times::clear(){
+    HW_vec.clear();
+    times_matrix.clear();
+    cost_matrix.clear();
+    normalized_matrix.clear();
+    return;
+}
+
+void Times::LoadHW(std::vector<Hardware> _HW_vec){
     HW_vec = _HW_vec;
+}
+
+Times::Times(int _size) {
+    clear();
+    graph_size = _size;
+    return;
 }
 
 void Times::setTimesMatrix(std::vector<std::vector<int>> _times_matrix){
     times_matrix.clear();
     times_matrix = _times_matrix;
+    return;
 }
 
 void Times::setCostsMatrix(std::vector<std::vector<int>> _cost_matrix){
     cost_matrix.clear();
     cost_matrix = _cost_matrix;
+    return;
 }
 
-void Times::SetRandomTimesAndCosts() {
+void Times::setRandomTimesAndCosts() {
     int randTime;
     int randCost;
     double randComplexity;
@@ -47,11 +64,13 @@ void Times::SetRandomTimesAndCosts() {
         costs_row.clear();
     }
     return;
+
 }
 
 void Times::show(std::ostream& out) const{
     printTimes(out);
     printCosts(out);
+    return;
 }
 
 void Times::printTimes(std::ostream& out) const{
@@ -62,6 +81,7 @@ void Times::printTimes(std::ostream& out) const{
         }
         out << std::endl;
     }
+    return;
 }
 
 void Times::printCosts(std::ostream& out) const{
@@ -72,6 +92,7 @@ void Times::printCosts(std::ostream& out) const{
         }
         out << std::endl;
     }
+    return;
 }
 
 

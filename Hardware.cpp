@@ -62,7 +62,7 @@ int Hardware::getID() const {
     return id;
 }
 
-void Hardware::PrintHW(std::ostream &out) {
+void Hardware::printHW(std::ostream &out) {
     out << cost << " " << restrictions << " ";
     if (H_type == Hardware_Type::PE) {
         out << 1;

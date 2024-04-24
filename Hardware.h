@@ -25,6 +25,6 @@ class Hardware {
         int getCost() const;
         std::string getType() const;
         friend std::ostream& operator<<(std::ostream& os, const Hardware& hw);
-        void PrintHW(std::ostream& out = std::cout);
+        void printHW(std::ostream& out = std::cout);
 };
 #endif // HARDWARE_H

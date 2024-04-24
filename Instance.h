@@ -6,7 +6,7 @@ class Instance {
 private:
     int id;
     const Hardware* hardwarePtr;
-    std::unordered_set<int> taskSet;
+    std::set<int> taskSet;
 
 public:
     Instance(int _id, const Hardware* _hardwarePtr)
@@ -25,7 +25,7 @@ public:
         return os;
     }
     
-    const std::unordered_set<int>& getTaskSet() const { return taskSet; }
+    const std::set<int>& getTaskSet() const { return taskSet; }
 
     void addTask(int task) { 
         taskSet.insert(task); 

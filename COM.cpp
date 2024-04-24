@@ -35,7 +35,7 @@ bool COM::operator<(const COM& other) const {
         return id < other.id;
 }
 
-void COM::PrintCOM(int hw_size,std::ostream& out) const{
+void COM::printCOM(int hw_size,std::ostream& out) const{
     out << "CHAN" << id << " " << bandwidth << " " << connect_cost << " ";
             for (Hardware h : HW_line){
                 out << isConnected(&h) << " ";
