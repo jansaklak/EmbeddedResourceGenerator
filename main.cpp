@@ -4,6 +4,7 @@
 #include <set>
 #include <vector>
 #include <cmath>
+#include <filesystem>
 
 #include "COM.h"
 #include "Graf.h"
@@ -12,6 +13,8 @@
 #include "Cost_List.h"
 
 extern const int SCALE = 400;
+
+namespace fs = std::filesystem;
 
 Cost_List generateRandomCostList(){
     int tasks_amount, hardware_cores_amount, processing_units_amount, channels_amount;
@@ -80,16 +83,21 @@ int main(){
                     file_loaded = 1;
                     break;
                 case 1:
+                    for (const auto& entry : fs::directory_iterator("data")) {
+                        std::string filename = entry.path().filename().string();
+                        filename = filename.substr(0, filename.size() - 4);
+                        std::cout << "   >" << filename << '\n';
+                    }
+
                     std::cout << "Podaj nazwe pliku do wczytania:\n\t->";
                     std::cin >> file_name;
-                    if(lista.Load_From_File("data/" + file_name) != 1){
-                        if(lista.Load_From_File("data/" + file_name + ".temp") == 1){
-                        }
-                        else{
-                            std::cout << "Błąd odczytu\n";
-                            continue;
-                        }
-                    }
+                    if( lista.Load_From_File("data/" + file_name) != 1 ||
+                        lista.Load_From_File("data/" + file_name + ".temp") != 1 ||
+                        lista.Load_From_File("data/" + file_name + ".dat") != 1){
+                            std::cerr << "Błąd\n";
+                            break;}
+                    
+                    
                     lista.printALL("data/input_test.dat", to_screen);
                     file_loaded = 1;
                     break;
