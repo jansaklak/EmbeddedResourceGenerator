@@ -65,7 +65,7 @@ void Cost_List::taskDistribution(int rule) {
                 Hardware* hw = getLowestTimeHardware(task_id,0);
                 bool foundInstance = false;
                 for (Instance* inst : Instances) {
-                    if (inst->getHardwarePtr() == hw) {
+                    if (inst->getHardwarePtr() == hw) {    //Jeśli najszybszy HW dla task == dostępny już w instancji to go użyj
                         addTaskToInstance(task_id,inst);
                         foundInstance = true;
                         break;
