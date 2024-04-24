@@ -36,7 +36,7 @@ void Cost_List::taskDistribution(int rule) {
             int LOOP_COUNTER;
             int HARD_TIME = 1000;
             for(int t =0;t<tasks_amount;t++){  //1. Przydziel do najszybszych
-                createInstance(t); // Przydziela najszybsze
+                createInstance(t); // Przydziela najszybsze -- to samo co createInstance(t,getLowestTimeHardware(t,0))
             }
 
 
