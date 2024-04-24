@@ -39,6 +39,8 @@ void Cost_List::taskDistribution(int rule) {
                 createInstance(t); // Przydziela najszybsze
             }
 
+
+
             break;
         }
         case 1:{
@@ -58,7 +60,7 @@ void Cost_List::taskDistribution(int rule) {
             break;
         }
         case 3:{
-            for (int task_id = 0; task_id < tasks_amount; ++task_id) {
+            for (int task_id = 0; task_id < tasks_amount; ++task_id) { //LOWEST TIME z ponownym wykorzystaniem instancji
                 int min_time = 2000000;
                 Hardware* hw = getLowestTimeHardware(task_id,0);
                 bool foundInstance = false;
@@ -77,7 +79,7 @@ void Cost_List::taskDistribution(int rule) {
             break;
         }
         case 4:{
-            for (int task_id = 0; task_id < tasks_amount; ++task_id) {
+            for (int task_id = 0; task_id < tasks_amount; ++task_id) { //LOWEST COST z ponownym wykorzystaniem instancji
                 int min_time = 2000000;
                 Hardware* hw = getLowestTimeHardware(task_id,1);
 
@@ -96,35 +98,35 @@ void Cost_List::taskDistribution(int rule) {
             }
             break;
         }
-        case 5:{
-            int currTask = 0;
+        case 5:{                //Przydzielanie po koleji, po sąsiadach 0
+            int currTask = 0;  
             int min_time = 2000000;
             Hardware* lowestTimeHW = getLowestTimeHardware(0,0);
             createInstance(0,lowestTimeHW);
             allocated_tasks[0] = 1;
             std::vector<int> currSet = TaskGraph.getOutNeighbourIndices(currTask);
             while(currSet.size() != 0){
-                currSet = TaskGraph.getOutNeighbourIndices(currTask);
+                currSet = TaskGraph.getOutNeighbourIndices(currTask); 
                 min_time = 0;
                 for(int t : currSet){
-                    if(times.getTime(t,lowestTimeHW)>min_time){
+                    if(times.getTime(t,lowestTimeHW)>min_time){ //Najdluzsze zadanie z sasiadów currTask przydzielam do sprzętu wybranego dla CurrTask 
                         min_time = times.getTime(t,lowestTimeHW);
                         currTask = t;
                     }
                 }
-                if(allocated_tasks[currTask] == 0){
+                if(allocated_tasks[currTask] == 0){ //
                     addTaskToInstance(currTask,Instances[0]);
                     allocated_tasks[currTask] = 1;
                 }
 
                 for(int t : currSet){
                     if(allocated_tasks[t] == 0){
-                        createInstance(t,getLowestTimeHardware(t,0));
+                        createInstance(t,getLowestTimeHardware(t,0)); //Dla reszty tworze nowe instancje
                         allocated_tasks[t] = 1;
                     }
                 }
             }
-            for(int i=0;i<tasks_amount;i++){
+            for(int i=0;i<tasks_amount;i++){ //Dla nieprzydzielonych zadań tworze nowe instancje
                 if(allocated_tasks[i]==0){
                     createInstance(i,getLowestTimeHardware(i,0));
                     allocated_tasks[i] = 1;
@@ -135,13 +137,13 @@ void Cost_List::taskDistribution(int rule) {
             int newInstTask = 0;
             bool foundOtherInst = false;
             for(int i=0;i<tasks_amount;i++){
-                for(Instance* ins : Instances){
+                for(Instance* ins : Instances){ //Jeśli równolegle dostępna jest wolna instancja to przenosze zadanie do niej
                     if (getStartingTime(i) < getInstanceEndingTime(ins)) {
                         removeTaskFromInstance(i);
                         addTaskToInstance(i, ins);
                     }
                 }
-                }
+            }
 
             break;
         }
