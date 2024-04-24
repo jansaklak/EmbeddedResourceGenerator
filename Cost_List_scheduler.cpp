@@ -157,7 +157,7 @@ void Cost_List::taskDistribution(int rule) {
                         break;
                     }
                     //std::cout << "instancja konczy o " << getInstanceEndingTime(ins) << "a chce zaczac o " <<getStartingTime(i) << "wiec\n";
-                    if(getInstanceEndingTime(ins)<=getStartingTime(i)){
+                    if(getInstanceEndingTime(ins)<=getStartingTime(i) && ins->getHardwarePtr() == getLowestTimeHardware(i,0)){
                         //std::cout << "DOdaje!!!!!!\n";
                         allocatedTasks[i] = 1;
                         addTaskToInstance(i,ins);
