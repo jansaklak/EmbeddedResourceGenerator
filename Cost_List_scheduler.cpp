@@ -55,7 +55,7 @@ void Cost_List::taskDistribution(int rule) {
     int estimatedTime = 0;
     TotalCost = 0;
     int tasks_amount = TaskGraph.getVerticesSize();
-    
+    times.normalize();
     int num_allocated = 0;
     allocated_tasks.resize(tasks_amount,0);
     switch (rule) {
