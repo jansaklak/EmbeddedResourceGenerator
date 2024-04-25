@@ -12,7 +12,7 @@
 #include "Times.h"
 #include "Cost_List.h"
 
-extern const int SCALE = 400;
+extern const int SCALE = 100;
 
 namespace fs = std::filesystem;
 
@@ -51,75 +51,93 @@ int main(){
         if(file_loaded){
             std::cout << "\tWczytano plik: " << file_name << "\n0 - Reset\n1 - Uruchom Zadania\n9 - Zakoncz program\n\t->";
             std::cin >> menu;
-            switch(menu){
-                case 0:
-                    file_loaded = 0;
-                    lista = Cost_List();
-                    break;
-                case 1:
-                    int strategy;
-                    std::cout << "Wybierz podział zadań:\n 1-najszybciej 2-najtaniej 3-rownomiernie\n\t->";
-                    std::cin >> strategy;
-                    lista.taskDistribution(strategy);
-                    std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
-                    std::cin >> sim;
-                    if(sim) lista.runTasks();
-                    break;
-                case 9:
-                    running = 0;
-                    break;
+            if(std::cin.fail()){
+                std::cin.clear();
+                std::cin.ignore();
+                std::cerr << "Podano złą opcję" << std::endl;
+            }
+            else{
+                switch(menu){
+                    case 0:
+                        file_loaded = 0;
+                        lista = Cost_List();
+                        break;
+                    case 1:
+                        int strategy;
+                        std::cout << "Wybierz podział zadań:\n 1-najszybciej 2-najtaniej 3-rownomiernie\n\t->";
+                        std::cin >> strategy;
+                        lista.taskDistribution(strategy);
+                        std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
+                        std::cin >> sim;
+                        if(sim) lista.runTasks();
+                        break;
+                    case 9:
+                        running = 0;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
         else{
             std::cout << "Nacisnij 0 aby stworzyć nowy plik\nNacisnij 1 aby wczytać plik\nNacisnij 5 aby wykonać zad. 5\nNacisnij 8 aby otworzyć projekt\n\t->";
             std::cin >> menu;
-            switch(menu){
-                case 0:
-                    lista = generateRandomCostList();
-                    std::cout << "Podaj nazwe pliku do zapisu:\n\t->";
-                    std::cin >> file_name;
-                    file_name += ".temp";
-                    lista.printALL("data/" + file_name, to_screen);
-                    file_loaded = 1;
-                    break;
-                case 1:
-                    for (const auto& entry : fs::directory_iterator("data")) {
-                        std::string filename = entry.path().filename().string();
-                        filename = filename.substr(0, filename.size() - 4);
-                        std::cout << "   >" << filename << '\n';
-                    }
+            if(std::cin.fail()){
+                std::cin.clear();
+                std::cin.ignore();
+                std::cerr << "Podano złą opcję" << std::endl;
+            }
+            else{
+                switch(menu){
+                    case 0:
+                        lista = generateRandomCostList();
+                        std::cout << "Podaj nazwe pliku do zapisu:\n\t->";
+                        std::cin >> file_name;
+                        file_name += ".temp";
+                        lista.printALL("data/" + file_name, to_screen);
+                        file_loaded = 1;
+                        break;
+                    case 1:
+                        for (const auto& entry : fs::directory_iterator("data")) {
+                            std::string filename = entry.path().filename().string();
+                            filename = filename.substr(0, filename.size() - 4);
+                            std::cout << "   >" << filename << '\n';
+                        }
 
-                    std::cout << "Podaj nazwe pliku do wczytania:\n\t->";
-                    std::cin >> file_name;
-                    if( lista.Load_From_File("data/" + file_name) != 1 ||
-                        lista.Load_From_File("data/" + file_name + ".temp") != 1 ||
-                        lista.Load_From_File("data/" + file_name + ".dat") != 1){
-                            std::cerr << "Błąd\n";
-                            break;}
-                    
-                    
-                    lista.printALL("data/input_test.dat", to_screen);
-                    file_loaded = 1;
-                    break;
-                case 5:
-                    lista.Load_From_File("data/graph20.dat");
-                    lista.taskDistribution(60);
-                    std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
-                    std::cin >> sim;
-                    if(sim) lista.runTasks();
-                    file_loaded = 1;
-                    break;
-                case 8:
-                    lista.Load_From_File("data/projekt.dat");
-                    lista.taskDistribution(8);
-                    std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
-                    std::cin >> sim;
-                    if(sim) lista.runTasks();
-                    file_loaded = 1;
-                    break;
-                case 9:
-                    running = 0;
-                    break;
+                        std::cout << "Podaj nazwe pliku do wczytania:\n\t->";
+                        std::cin >> file_name;
+                        if( !(lista.Load_From_File("data/" + file_name) == 1 ||
+                            lista.Load_From_File("data/" + file_name + ".temp") == 1 ||
+                            lista.Load_From_File("data/" + file_name + ".dat") == 1)){
+                                std::cerr << "\t\tBŁĄÐ ODCZYTU\n";
+                                break;}
+                        
+                        
+                        lista.printALL("data/input_test.dat", to_screen);
+                        file_loaded = 1;
+                        break;
+                    case 5:
+                        lista.Load_From_File("data/graph20.dat");
+                        lista.taskDistribution(60);
+                        std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
+                        std::cin >> sim;
+                        if(sim) lista.runTasks();
+                        file_loaded = 1;
+                        break;
+                    case 8:
+                        lista.Load_From_File("data/projekt.dat");
+                        lista.taskDistribution(8);
+                        std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
+                        std::cin >> sim;
+                        if(sim) lista.runTasks();
+                        file_loaded = 1;
+                        break;
+                    case 9:
+                        running = 0;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }

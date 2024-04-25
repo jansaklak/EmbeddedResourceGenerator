@@ -19,10 +19,12 @@ private:
     std::vector<std::vector<int>> normalized_matrix;
     void CountCosts();
     void clear();
+    
 public:
     Times();
     Times(int graph_size);
     void setRandomTimesAndCosts();
+
     void setTimesMatrix(std::vector<std::vector<int>> _times_matrix);
     void setCostsMatrix(std::vector<std::vector<int>> _costs_matrix);
     void show(std::ostream& out = std::cout) const;
@@ -31,7 +33,7 @@ public:
     int getNormalized(int TaskID,const Hardware* h) const;
     void printTimes(std::ostream& out = std::cout) const;
     void printCosts(std::ostream& out = std::cout) const;
-
+    void normalize();
     void updateNormalized(int TaskID,const Hardware* h);
     void LoadHW(std::vector<Hardware> _HW_vec);
 

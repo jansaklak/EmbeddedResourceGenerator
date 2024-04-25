@@ -11,15 +11,31 @@
 #include <algorithm>
 #include <map>
 
-void Cost_List::taskDistribution(int rule) {
-    int estimatedCost = 0;
-    int estimatedTime = 0;
-    TotalCost = 0;
-    int tasks_amount = TaskGraph.getVerticesSize();
-    std::vector<int> allocated_tasks;
-    allocated_tasks.resize(tasks_amount,0);
-    switch (rule) {
-        case 8:{        //PROJEKT
+void Cost_List::recurrent_distribution_helper(int root,std::vector<int> _currSet){
+    std::vector<int> currSet = _currSet;
+    bool rootInstanceUsed = false;
+    if(currSet.empty()){
+        return;
+    }
+    for(int currTask : currSet){
+        Hardware* currTask_lowestTimeHW = getLowestTimeHardware(currTask,0);
+        if(!rootInstanceUsed && getInstance(root)->getHardwarePtr()==currTask_lowestTimeHW){
+            addTaskToInstance(currTask,getInstance(root));
+            rootInstanceUsed = true;
+        }
+        else{
+            createInstance(currTask);
+        }
+    }
+    return;
+}
+
+//uruchom dla 0
+//uruchom dla sasiadow0
+//uruchom dla sasiadow z wszystkich sasiadow 0
+
+
+//PROJEKT
         /*Algorytm rafinacyjny - funckja kary
 
         1. Zaczynamy od najszybszego podziału zadań
@@ -32,12 +48,42 @@ void Cost_List::taskDistribution(int rule) {
 
         5. Koniec: każde z zadań jest rozpatrzone (LOOP_COUNTER) lub nie da się nic zmienić
 
-        */
+*/
+
+void Cost_List::taskDistribution(int rule) {
+    int estimatedCost = 0;
+    int estimatedTime = 0;
+    TotalCost = 0;
+    int tasks_amount = TaskGraph.getVerticesSize();
+    
+    int num_allocated = 0;
+    allocated_tasks.resize(tasks_amount,0);
+    switch (rule) {
+        case 8:{        
             int LOOP_COUNTER;
             int HARD_TIME = 1000;
-            for(int t =0;t<tasks_amount;t++){  //1. Przydziel do najszybszych
-                createInstance(t); // Przydziela najszybsze -- to samo co createInstance(t,getLowestTimeHardware(t,0))
+            int currTask = 0;
+            int min_time;
+            std::vector<int> bfs_tasks = TaskGraph.BFS();
+            for(int currTask : bfs_tasks){
+                Hardware* hw = getLowestTimeHardware(currTask,0);
+                for(Instance* inst : Instances){
+                    if(inst->getHardwarePtr()==hw && getInstanceEndingTime(inst) <= getStartingTime(currTask)){
+                        addTaskToInstance(currTask,inst);
+                        allocated_tasks[currTask] = 1;
+                        break;
+                    }
+                }
+                if(allocated_tasks[currTask]==0){
+                    createInstance(currTask);
+                    allocated_tasks[currTask] =1;
+                }
             }
+            times.normalize();
+            
+            
+
+
 
 
 
@@ -98,6 +144,50 @@ void Cost_List::taskDistribution(int rule) {
             }
             break;
         }
+        case 40:{
+            for (int task_id = 0; task_id < tasks_amount; ++task_id) { //LOWEST NORMAIZED z ponownym wykorzystaniem instancji
+                int min_time = 2000000;
+                Hardware* hw = getLowestTimeHardware(task_id,2);
+
+                bool foundInstance = false;
+                for (Instance* inst : Instances) {
+                    if (inst->getHardwarePtr() == hw) {
+                        addTaskToInstance(task_id,inst);
+                        foundInstance = true;
+                        break;
+                    }
+                }
+                if (!foundInstance) {
+                    createInstance(task_id,hw);
+                }
+                estimatedCost += times.getCost(task_id, hw);
+            }
+            break;
+        }
+        case 41:{
+            int LOOP_COUNTER;
+            int HARD_TIME = 1000;
+            int currTask = 0;
+            int min_time;
+            std::vector<int> bfs_tasks = TaskGraph.BFS();
+            for(int currTask : bfs_tasks){
+                Hardware* hw = getLowestTimeHardware(currTask,2);
+                for(Instance* inst : Instances){
+                    if(inst->getHardwarePtr()==hw && getInstanceEndingTime(inst) <= getStartingTime(currTask)){
+                        addTaskToInstance(currTask,inst);
+                        allocated_tasks[currTask] = 1;
+                        break;
+                    }
+                }
+                if(allocated_tasks[currTask]==0){
+                    createInstance(currTask,getLowestTimeHardware(currTask,2));
+                    allocated_tasks[currTask] =1;
+                }
+            }
+            times.normalize();
+
+            break;
+        }
         case 5:{                //Przydzielanie po koleji, po sąsiadach 0
             int currTask = 0;  
             int min_time = 2000000;
@@ -150,6 +240,7 @@ void Cost_List::taskDistribution(int rule) {
 
         case 60:{
             createInstance(0);
+            std::cout << "Tutaj";
             int allocatedTasks[tasks_amount] = {0};
             allocatedTasks[0] = 1;
             for(int i : TaskGraph.BFS()){

@@ -23,13 +23,11 @@ void Graf::addEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) {
 void Graf::addEdge(int i_Vertex_Index_1, int i_Vertex_Index_2, int weight) {
     if(i_Vertex_Index_1>maxVert) maxVert = i_Vertex_Index_1 + 1;
     if(i_Vertex_Index_2>maxVert) maxVert = i_Vertex_Index_2 + 1;
-    if(i_Vertex_Index_1 == 44 || i_Vertex_Index_2 == 44){
-        std::cout <<"OJOJ";
-    }
     adjList.resize(maxVert+1);
     Edge edge(i_Vertex_Index_1, i_Vertex_Index_2, weight);
     adjList[i_Vertex_Index_1].push_back(edge);
 }
+
 int Graf::getVerticesSize() const{
     return adjList.size();
 }

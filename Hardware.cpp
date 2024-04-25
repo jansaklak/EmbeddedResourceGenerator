@@ -17,6 +17,7 @@ Hardware::Hardware(double power, Hardware_Type type,int _id) {
     id = _id;
 }
 
+
 bool Hardware::operator<(const Hardware& other) const {
         if (H_type != other.H_type) {
             if(H_type == Hardware_Type::PE){
@@ -55,6 +56,11 @@ std::ostream& operator<<(std::ostream& os, const Hardware& hw){
 }
 
 int Hardware::getCost() const {
+    if(H_type == Hardware_Type::HC) return 0;
+    return cost;
+}
+
+int Hardware::_getCost() const {
     return cost;
 }
 
@@ -63,7 +69,7 @@ int Hardware::getID() const {
 }
 
 void Hardware::printHW(std::ostream &out) {
-    out << cost << " " << restrictions << " ";
+    out << getCost() << " " << restrictions << " ";
     if (H_type == Hardware_Type::PE) {
         out << 1;
     }

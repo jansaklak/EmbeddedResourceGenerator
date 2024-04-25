@@ -21,6 +21,9 @@ class Cost_List{
     private:
         std::vector<Hardware> Hardwares;
         std::vector<COM> Channels;
+        std::vector<int> allocated_tasks;
+
+
         Graf TaskGraph;
         Times times;
         int tasks_amount;
@@ -29,9 +32,7 @@ class Cost_List{
         int channels_amount;
         bool with_cost;
         int TotalCost;
-
-
-
+        int simulation_time_scale;
 
         Times getTimes() const;
         Graf getGraph() const;
@@ -57,18 +58,18 @@ class Cost_List{
         int getTimeRunning(const Instance* inst);
         int getIdleTime(const Instance* inst,int timeStop);
 
-        Hardware* getLowestTimeHardware(int task_id, int time_cost) const;
+        Hardware* getLowestTimeHardware(int task_id, int time_cost_normalized) const;
         std::vector<int> getLongestPath(int start) const;
         Instance* getInstance(int task_id);
 
-        void createInstance(int task_ID,const Hardware* h);
-        void createInstance(int task_ID);
+        int createInstance(int task_ID,const Hardware* h);
+        int createInstance(int task_ID);
         void addTaskToInstance(int task_ID,Instance* inst);
         void removeTaskFromInstance(int task_ID);
+        void recurrent_distribution_helper(int root,std::vector<int> _currSet);
 
         void connectRandomCH();
         
-
         void TaskRunner(Instance i);
 
         void updateWeights();

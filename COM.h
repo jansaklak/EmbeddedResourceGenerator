@@ -24,7 +24,6 @@ public:
     int getCost() const;
     bool isConnected(const Hardware* other) const;
     void printCOM(int hw_size,std::ostream& out) const;
-
 };
 
 

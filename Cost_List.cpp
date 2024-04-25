@@ -193,7 +193,7 @@ void Cost_List::createRandomTasksGraph() {
         std::cerr << "Błędna liczba zadań";
         return;
     }
-    std::cout << "TWORZĘ WYKRES DO " << tasks_amount << std::endl;
+    //std::cout << "TWORZĘ WYKRES DO " << tasks_amount << std::endl;
     std::set<int> visited;
     Graf G;
     if (with_cost) {
@@ -217,14 +217,14 @@ void Cost_List::createRandomTasksGraph() {
 
     for (int i = 0; i < tasks_amount; ++i) {
         if (visited.find(i) == visited.end()) {
-            std::cout << "NIE DODANO " << i << std::endl;
+            //std::cout << "NIE DODANO " << i << std::endl;
             int idx = rand() % visited.size();
             auto it = visited.begin();
             for (int k = 0; k < idx; k++) {
                 it++;
             }
             int random_visited_task = *it;
-            std::cout << "RANDOM VISITED = " << random_visited_task << "\n";
+            //std::cout << "RANDOM VISITED = " << random_visited_task << "\n";
 
             if (!G.checkEdge(random_visited_task, i)) {
                 if (with_cost) {
@@ -281,24 +281,8 @@ void Cost_List::printInstances(){
     int task_id;
     int task_time;
 
-    for(auto it = taskInstanceMap.begin(); it != taskInstanceMap.end(); ++it) {
-        task_id = it->first;
-        if(getEndingTime(task_id)>criticalTime){
-            task_time = getEndingTime(task_id);
-            criticalTime = task_time;
-        }
-    }
-
-    for (const Instance* inst : Instances) {
-        int expTime = 0;
-        int expCost = 0;
-        for (int taskID : inst->getTaskSet()) {
-            expTime += times.getTime(taskID, inst->getHardwarePtr());
-            expCost += times.getCost(taskID, inst->getHardwarePtr());
-        }
-        expCost += inst->getHardwarePtr()->getCost();
-        std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " Bezczynnosci: " << getIdleTime(inst,criticalTime) << " koszt: " << expCost  << " w tym początkowy: " << inst->getHardwarePtr()->getCost() << "\n";
-    }
+    int totalCost = 0;
+    
 
     // for(auto it = taskInstanceMap.begin(); it != taskInstanceMap.end(); ++it) {
     //     task_id = it->first;
@@ -314,22 +298,30 @@ void Cost_List::printInstances(){
         if(criticTime<task_schedule[t].second) criticTime = task_schedule[t].second;
 
     }
-    std::cout << "Czas scieżki krytycznej: " << criticTime << std::endl;
+
+    for (const Instance* inst : Instances) {
+        int expTime = 0;
+        int expCost = 0;
+        for (int taskID : inst->getTaskSet()) {
+            expTime += times.getTime(taskID, inst->getHardwarePtr());
+            expCost += times.getCost(taskID, inst->getHardwarePtr());
+        }
+        
+        expCost += inst->getHardwarePtr()->getCost();
+        totalCost += expCost;
+        std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " Bezczynnosci: " << getIdleTime(inst,criticTime) << " koszt: " << expCost  << " w tym początkowy: " << inst->getHardwarePtr()->getCost() << "\n";
+    }
+    std::cout << "Czas scieżki krytycznej: " << criticTime;
+    std::cout << "\tKoszt całkowity: " << totalCost << std::endl;
 }
 
 void Cost_List::randALL(){
     times = Times(tasks_amount);
-    //std::cout << "10%";
     createRandomTasksGraph();
-    //std::cout << "20%";
-    //if(getRandomProc() ==1 ) std::cout << "30%";
     getRandomProc();
     times.LoadHW(Hardwares);
-    //std::cout << "40%";
     times.setRandomTimesAndCosts();
-    //std::cout << "50%";
     connectRandomCH();
-    //std::cout << "60%";
 }
 
 void Cost_List::printALL(std::string filename,bool toScreen) const{
@@ -412,7 +404,8 @@ void Cost_List::connectRandomCH(){
 
 void Cost_List::runTasks() {
     int TotalCost = 0;
-    std::cout << "\nUruchamiam zadania:\n";
+    simulation_time_scale = 1;
+    std::cout << "\nUruchamiam zadania w skali x" << simulation_time_scale << ":\n";
     progress.resize(TaskGraph.getVerticesSize(), -2); // -2 - cant be done flag
     progress[0] = -1;
     std::vector<std::thread> threads;
@@ -425,20 +418,23 @@ void Cost_List::runTasks() {
     stop = true;
     counterThread.join();
     threads.clear();
-    std::cout << "\n\nCzas trwania programu: " << czas << " milisekund.\n\n";
+    std::cout << "\n\nCzas trwania programu: " << czas << " milisekund. (skala x" << simulation_time_scale << ") \n\n";
 }
 
 
-Hardware* Cost_List::getLowestTimeHardware(int task_id, int time_cost) const{
+Hardware* Cost_List::getLowestTimeHardware(int task_id, int time_cost_normalized) const{
     Hardware* outHW = nullptr;
     int min_time = INF;
     for (const Hardware& hw : Hardwares) {
         int time;
-        if(time_cost == 0){
+        if(time_cost_normalized == 0){
             time = times.getTime(task_id, &hw);
         }
-        else{
+        else if (time_cost_normalized == 1){
             time = times.getCost(task_id, &hw);
+        }
+        else if(time_cost_normalized == 2){
+            time = times.getNormalized(task_id, &hw);
         }
         if (time < min_time) {
             min_time = time;
@@ -448,21 +444,29 @@ Hardware* Cost_List::getLowestTimeHardware(int task_id, int time_cost) const{
     return outHW;
 }
 
-void Cost_List::createInstance(int task_ID, const Hardware* h) {
+int Cost_List::createInstance(int task_ID, const Hardware* h) {
+    if(allocated_tasks[task_ID]==1){
+        return 0;
+    }
     Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
     HWInstancesCount[h->getID()]++;
     newInst->addTask(task_ID);
     Instances.push_back(newInst);
     taskInstanceMap[task_ID] = newInst;
+    return 1;
 }
 
-void Cost_List::createInstance(int task_ID) {
+int Cost_List::createInstance(int task_ID) {
+    if(allocated_tasks[task_ID]==1){
+        return 0;
+    }
     Hardware* h = getLowestTimeHardware(task_ID,0);
     Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
     HWInstancesCount[h->getID()]++;
     newInst->addTask(task_ID);
     Instances.push_back(newInst);
     taskInstanceMap[task_ID] = newInst;
+    return 1;
 }
 
 void Cost_List::addTaskToInstance(int task_ID, Instance* inst) {
@@ -490,7 +494,7 @@ void Cost_List::TaskRunner(Instance i) {
                     progress[t] = 0;
                     for (int i = 1; i < time+1; ++i) {
                         progress[t] = (((i + 1) * 100) / time);
-                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                        std::this_thread::sleep_for(std::chrono::milliseconds(simulation_time_scale));
                     }
                     ++taskCounter;
                     std::cout << "\tT" << t << "done\n";

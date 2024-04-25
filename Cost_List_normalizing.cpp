@@ -11,13 +11,18 @@
 #include <algorithm>
 #include <map>
 
-// void Cost_List::updateWeights(){
+// void Cost_List::getCurrWeight(Instance* inst){
 
 //     double remaining_time;
 //     double longest_running;
 //     double least_running;
 //     double least_time_running;
 //     double previous_weight;
+//     for (Instance* inst : Instances){
+
+//     }
+
+//     do
 
 // }
 

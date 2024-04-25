@@ -42,6 +42,18 @@ void Times::setCostsMatrix(std::vector<std::vector<int>> _cost_matrix){
     return;
 }
 
+void Times::normalize() {
+    // Upewnij się, że normalized_matrix ma odpowiedni rozmiar
+    normalized_matrix.resize(times_matrix.size());
+    for(int i = 0; i < times_matrix.size(); i++) {
+        normalized_matrix[i].resize(times_matrix.size());
+
+        for(int j = 0; j < times_matrix.size(); j++) {
+            normalized_matrix[i][j] = times_matrix[i][j] * cost_matrix[i][j];
+        }
+    }
+}
+
 void Times::setRandomTimesAndCosts() {
     int randTime;
     int randCost;
@@ -53,7 +65,7 @@ void Times::setRandomTimesAndCosts() {
     for (int t = 0; t < graph_size; t++) {
         for (Hardware hw : HW_vec) {
             randComplexity = 1 + rand() % (SCALE / 4);
-            randTime = randComplexity * SCALE * sqrt(SCALE) / (hw.getCost() + rand() % (SCALE / 8));
+            randTime = randComplexity * SCALE * sqrt(SCALE) / (hw._getCost() + rand() % (SCALE / 8));
             randCost = SCALE * 8 / randTime + rand() % (SCALE / 8);
             times_row.push_back(randTime);
             costs_row.push_back(randCost);
@@ -102,6 +114,12 @@ int Times::getTime(int TaskID, const Hardware* h) const {
     return row[h->getID()];
 }
 int Times::getCost(int TaskID, const Hardware* h) const {
+    if (h == nullptr) return -1;
+    std::vector<int> row = cost_matrix[TaskID];
+    return row[h->getID()];
+}
+
+int Times::getNormalized(int TaskID, const Hardware* h) const {
     if (h == nullptr) return -1;
     std::vector<int> row = cost_matrix[TaskID];
     return row[h->getID()];
