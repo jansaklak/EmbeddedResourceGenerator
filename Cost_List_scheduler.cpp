@@ -77,7 +77,7 @@ void Cost_List::taskDistribution(int rule) {
                 createInstance(currTask);
             }
             for(int currTask : bfs_tasks){
-                getCurrWeight(currTask);
+                getCurrWeight(currTask,1);
             }
             
             

@@ -52,7 +52,7 @@ class Cost_List{
         int getEndingTime(int task_id);
         int getInstanceStartingTime(const Instance* inst);
         int getInstanceEndingTime(const Instance* inst);
-        void getCurrWeight(int task_id);
+        void getCurrWeight(int task_id,bool changeInstances);
 
         const Instance* getShortestRunningInstance();
         const Instance* getLongestRunningInstance();

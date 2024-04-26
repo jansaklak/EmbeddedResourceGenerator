@@ -118,7 +118,7 @@ void normalize(std::vector<WeightTable>& values) {
         wt.runTime = (wt.runTime - min_runTime) / (max_runTime - min_runTime)                       * 0.1;
         wt.reCalc = (wt.reCalc - min_reCalc) / (max_reCalc - min_reCalc)                            * 0.3;
         wt.idleTime = (wt.idleTime - min_idleTime) / (max_idleTime - min_idleTime)                  * 0.1;
-        wt.asBefore = wt.asBefore * 0.05;
+        wt.asBefore = wt.asBefore                                                                   * 0.05;
         wt.SUM = wt.TCP + wt.TC + wt.Tw + wt.reTw + wt.Cw + wt.StartingTime + wt.runTime + wt.reCalc + wt.idleTime + wt.asBefore;                                                                  
     }
     
@@ -127,7 +127,7 @@ void normalize(std::vector<WeightTable>& values) {
 
 
 
-void Cost_List::getCurrWeight(int task_id){
+void Cost_List::getCurrWeight(int task_id,bool changeInstances){
     std::cout<<"\nDLA ZADANIA " << task_id << "\n";
     double remaining_time;
     double longest_running;
@@ -156,8 +156,31 @@ void Cost_List::getCurrWeight(int task_id){
         printWeightTable(wt);
     }
     normalize(weightsTable);
+    WeightTable best_w;
+    double best_weight = 0.0;
     for(WeightTable w : weightsTable){
         std::cout << *w.inst << "\t\tPunkty: " << w.SUM << "\n";
+        if(w.SUM > best_weight){
+            best_weight = w.SUM;
+            best_w = w;
+        }
+    }
+    if(changeInstances){
+        
+        std::cout << "PRZENOSZE ZADANIE" << task_id << "Z: " << *getInstance(task_id) << " NA: " << *best_w.inst << "\n";
+        
+        if(best_w.inst->isVirtual()){
+            removeTaskFromInstance(task_id);
+            createInstance(task_id,best_w.inst->getHardwarePtr());
+        }
+        else if(best_w.inst == getInstance(task_id)){
+            
+        }
+        else{
+            removeTaskFromInstance(task_id);
+            addTaskToInstance(task_id,best_w.inst);
+        }
+        
     }
 
 }
