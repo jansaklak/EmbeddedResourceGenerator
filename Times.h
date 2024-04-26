@@ -16,7 +16,7 @@ private:
     std::vector<Hardware> HW_vec;
     std::vector<std::vector<int>> times_matrix;
     std::vector<std::vector<int>> cost_matrix;
-    std::vector<std::vector<int>> normalized_matrix;
+    std::vector<std::vector<double>> normalized_matrix;
     void CountCosts();
     void clear();
     
@@ -33,11 +33,9 @@ public:
     int getNormalized(int TaskID,const Hardware* h) const;
     void printTimes(std::ostream& out = std::cout) const;
     void printCosts(std::ostream& out = std::cout) const;
-    void normalize();
+    void normalize(double task_ratio = 1.0,double cost_ratio = 1.0,double time_ratio = 1.0);
     void updateNormalized(int TaskID,const Hardware* h);
     void LoadHW(std::vector<Hardware> _HW_vec);
-
-
 };
 
 #endif // TIMES_H

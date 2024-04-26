@@ -56,6 +56,19 @@ std::vector<std::vector<Edge>> Graf::getAdjList() const{
 
 }
 
+std::vector<int> Graf::getInNeighbourIndices(int idx) const {
+    std::vector<int> inNeighbours;
+    for (int i = 0; i < maxVert; ++i) {
+        for (const auto& edge : adjList[i]) {
+            if (edge.getV2() == idx) {
+                inNeighbours.push_back(i);
+                break;
+            }
+        }
+    }
+    return inNeighbours;
+}
+
 
 
 

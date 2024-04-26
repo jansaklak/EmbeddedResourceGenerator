@@ -20,6 +20,7 @@ public:
     int getWeightEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) const;
     std::vector<int> getNeighbourIndices(int idx) const;
     std::vector<int> getOutNeighbourIndices(int idx) const;
+    std::vector<int> getInNeighbourIndices(int idx) const;
     bool checkEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) const;
     void printMatrix(std::ostream& out = std::cout) const;
     std::vector<std::vector<Edge>> getAdjList() const;

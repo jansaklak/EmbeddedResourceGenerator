@@ -74,18 +74,13 @@ void Cost_List::taskDistribution(int rule) {
                         break;
                     }
                 }
-                if(allocated_tasks[currTask]==0){
-                    createInstance(currTask);
-                    allocated_tasks[currTask] =1;
-                }
+                createInstance(currTask);
             }
-            times.normalize();
+            for(int currTask : bfs_tasks){
+                getCurrWeight(currTask);
+            }
             
             
-
-
-
-
 
             break;
         }

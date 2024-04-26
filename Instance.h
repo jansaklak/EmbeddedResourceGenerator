@@ -7,12 +7,24 @@ private:
     int id;
     const Hardware* hardwarePtr;
     std::set<int> taskSet;
+    bool is_Virtual;
 
 public:
     Instance(int _id, const Hardware* _hardwarePtr)
-        : id(_id), hardwarePtr(_hardwarePtr){}
-    int getID() const { return id; }
-    const Hardware* getHardwarePtr() const { return hardwarePtr; }
+        : id(_id), hardwarePtr(_hardwarePtr),is_Virtual(false){}
+
+    Instance(int _id, const Hardware* _hardwarePtr,bool _isVirtual)
+        : id(_id), hardwarePtr(_hardwarePtr),is_Virtual(_isVirtual){}
+
+    int getID() const { 
+        return id;
+    }
+    
+    const Hardware* getHardwarePtr() const {return hardwarePtr;}
+
+     bool isVirtual() const{
+        return is_Virtual;
+    }
 
     bool operator<(const Instance& other) const {
         if (hardwarePtr != other.hardwarePtr) {
@@ -21,7 +33,12 @@ public:
         return id < other.id;
     }
     friend std::ostream& operator<<(std::ostream& os, const Instance& instance) {
-        os << *instance.getHardwarePtr() << "_" << instance.getID();
+        if(instance.isVirtual()){
+            os << "V_" << *instance.getHardwarePtr() << "_" << instance.getID();
+        }
+        else{
+            os << *instance.getHardwarePtr() << "_" << instance.getID();
+        }
         return os;
     }
     

@@ -4,7 +4,7 @@ CFLAGS=-std=c++17 -g
 all: main
 
 main: main.o Graf.o Hardware.o Times.o COM.o Cost_List.o Edge.o Cost_List_scheduler.o Cost_List_normalizing.o
-	$(CC) $(CFLAGS) main.o Graf.o Hardware.o Edge.o Times.o COM.o Cost_List.o Cost_List_scheduler.o Cost_List_normalizing.o -o main
+	$(CC) $(CFLAGS) main.o Graf.o Hardware.o Edge.o Times.o COM.o Cost_List.o Cost_List_scheduler.o Cost_List_normalizing.o  -o main
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp

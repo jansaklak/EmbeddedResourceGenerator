@@ -52,6 +52,7 @@ class Cost_List{
         int getEndingTime(int task_id);
         int getInstanceStartingTime(const Instance* inst);
         int getInstanceEndingTime(const Instance* inst);
+        void getCurrWeight(int task_id);
 
         const Instance* getShortestRunningInstance();
         const Instance* getLongestRunningInstance();
@@ -75,6 +76,19 @@ class Cost_List{
         void updateWeights();
 
         void ReadProgress();
+
+        double time_cost_proc(int task_id,const Instance* inst);
+        double time_cost(int task_id,const Instance* inst);
+        double time_weight(int task_id,const Instance* inst);
+        double reuse_time_weight(int task_id,const Instance* inst);
+        double cost_weight(int task_id,const Instance* inst);
+        double allocated_cost(int task_id,const Instance* inst);
+        double inst_starting(int task_id,const Instance* inst);
+        double inst_time_running(int task_id,const Instance* inst);
+        double reCalculate(int task_id,const Instance* inst);
+        double longestIdle(int task_id,const Instance* inst);
+        double asBefore(int task_id,const Instance* inst);
+
     public:
 
         Cost_List(int _tasks,int _hcores,int _punits,int _channels,int _withCost);
