@@ -27,18 +27,18 @@ struct WeightTable {
 };
 
 void printWeightTable(const WeightTable& wt) {
-    std::cout << "INST: " << *wt.inst << "\t";
-    std::cout << "TCP: " << wt.TCP << "\t";
-    std::cout << "TC: " << wt.TC << "\t";
-    std::cout << "Tw: " << wt.Tw << "\t";
-    std::cout << "reTw: " << wt.reTw << "\t";
-    std::cout << "Cw: " << wt.Cw << "\t";
-    std::cout << "reCw: " << wt.reCw << "\t";
-    std::cout << "tasksOnInst: " << wt.StartingTime << "\t";
-    std::cout << "runTime: " << wt.runTime << "\t";
-    std::cout << "reCalc: " << wt.reCalc << "\t";
-    std::cout << "idleTime: " << wt.idleTime << "\t";
-    std::cout << "asBefore: " << wt.asBefore << "\n";
+    std::cout << "INST: " << std::setw(1) << *wt.inst << "\t|";
+    std::cout << "TCP: " << std::setw(5) << wt.TCP << "|";
+    std::cout << "TC: " << std::setw(5) << wt.TC << "|";
+    std::cout << "Tw: " << std::setw(5) << wt.Tw << "|";
+    std::cout << "reTw: " << std::setw(5) << wt.reTw << "|";
+    std::cout << "Cw: " << std::setw(5) << wt.Cw << "|";
+    std::cout << "reCw: " << std::setw(5) << wt.reCw << "|";
+    std::cout << "tasksOnInst: " << std::setw(5) << wt.StartingTime << "|";
+    std::cout << "runTime: " << std::setw(5) << wt.runTime << "|";
+    std::cout << "reCalc: " << std::setw(5) << wt.reCalc << "|";
+    std::cout << "idleTime: " << std::setw(5) << wt.idleTime << "|";
+    std::cout << "asBefore: " << std::setw(5) << wt.asBefore << "\n";
 }
 
 
@@ -167,13 +167,12 @@ int Cost_List::getTimeRunning(const Instance* inst){
 int Cost_List::getIdleTime(const Instance* inst,int timeStop) {
         int total_time =0;
         for(int i : inst->getTaskSet()){
-            if(getStartingTime(i)>=timeStop){
+            if(getStartingTime(i) + (getEndingTime(i) - getStartingTime(i)) >=timeStop){
                 break;
             }
             total_time += getEndingTime(i) - getStartingTime(i);
             
         }
-        if(timeStop - total_time < 0) return 0;
         return timeStop - total_time;
 }
 
