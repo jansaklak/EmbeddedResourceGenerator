@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 
-# Wczytywanie danych z pliku
 data = []
 with open("gantt_data.dat", "r") as file:
     for line in file:
@@ -12,7 +11,6 @@ with open("gantt_data.dat", "r") as file:
         end_time = int(parts[3])
         data.append((task_id, task_type, start_time, end_time))
 
-# Tworzenie słownika dla kolorów, przypisując kolor każdej unikalnej nazwie jednostki
 unique_units = OrderedDict()
 colors = {}
 color_index = 0
@@ -22,17 +20,14 @@ for _, unit, _, _ in data:
         colors[unit] = plt.cm.tab10(color_index)  # Używamy palety kolorów tab10
         color_index += 1
 
-# Tworzenie listy danych z poszczególnymi wierszami dla każdej jednostki
 grouped_data = {}
 for task_id, task_type, start, end in data:
     if task_type not in grouped_data:
         grouped_data[task_type] = []
     grouped_data[task_type].append((task_id, task_type, start, end))
 
-# Tworzenie legendy
 legend_patches = [plt.Rectangle((0,0),1,1,fc=colors[unit], edgecolor='black') for unit in unique_units]
 
-# Tworzenie listy danych z poszczególnymi wierszami dla każdej jednostki
 rows = [grouped_data[unit] for unit in unique_units]
 
 fig, ax = plt.subplots()
@@ -50,11 +45,9 @@ ax.grid(True)
 
 ax.legend(legend_patches, list(unique_units.keys()))
 
-#plt.subplots_adjust(left=0.4, right=1.5, top=1.5, bottom=0.4)
 
 plt.savefig('data/gantt_chart.png', format='png', dpi=1200)
 
-# Wyświetlenie komunikatu
 print("Wykres został zapisany do pliku gantt_chart.png")
 
 # Nie wyświetlamy wykresu interaktywnie
