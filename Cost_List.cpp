@@ -274,31 +274,42 @@ void Cost_List::printProc(std::ostream& out) const{
     }
 }
 
+int Cost_List::getCriticalTime(){
+    int maxTime = 0;
+    for(Instance* i : Instances){
+        if(getInstanceEndingTime(i)>maxTime) maxTime = getInstanceEndingTime(i);
+    }
+    return maxTime;
+}
+
+void Cost_List::printToGantt(std::string filename){
+    std::ofstream outputFile(filename, std::ofstream::trunc);
+    if (outputFile.is_open()) {
+        for(int t = 0; t<tasks_amount;t++){
+            outputFile  << t << " " << *getInstance(t) << " " << task_schedule[t].first <<" " << task_schedule[t].second << std::endl;
+        }
+        std::cout << "Zapisano wykres zadań do: " << filename << std::endl;
+        outputFile.close();
+    }
+    else {
+        std::cerr << "Nie można otworzyć pliku do zapisu wykresu." << std::endl;
+        return;
+    }
+
+}
+
 void Cost_List::printInstances(){
     std::sort(Instances.begin(), Instances.end());
     std::cout << "Stworzono " << Instances.size() << " komponentów\n";
-    int criticalTime =0;
     int task_id;
     int task_time;
-
     int totalCost = 0;
-    
-
-    // for(auto it = taskInstanceMap.begin(); it != taskInstanceMap.end(); ++it) {
-    //     task_id = it->first;
-    //     const Instance& inst = *(it->second);
-    //     task_time = getEndingTime(task_id);
-    //     std::cout << "T" << task_id << " na " << inst << " Od: " << getStartingTime(task_id) << " do :" << task_time << "\n";
-    // }
-    // std::cout << "\tCzas ścieżki krytycznej: " << criticalTime << '\n';
     printSchedule();
-    int criticTime = 0;
+    
     for(int t = 0; t<tasks_amount;t++){
         std::cout  << "T" << t << "\tna " << *getInstance(t) << " od:" << task_schedule[t].first <<" do:" << task_schedule[t].second << std::endl;
-        if(criticTime<task_schedule[t].second) criticTime = task_schedule[t].second;
-
     }
-
+    int criticTime = getCriticalTime();
     for (const Instance* inst : Instances) {
         int expTime = 0;
         int expCost = 0;
@@ -313,6 +324,7 @@ void Cost_List::printInstances(){
     }
     std::cout << "Czas scieżki krytycznej: " << criticTime;
     std::cout << "\tKoszt całkowity: " << totalCost << std::endl;
+
 }
 
 void Cost_List::randALL(){
@@ -457,28 +469,68 @@ int Cost_List::createInstance(int task_ID, const Hardware* h) {
 }
 
 int Cost_List::createInstance(int task_ID) {
-    if(allocated_tasks[task_ID]==1){
-        return 0;
+    if (allocated_tasks[task_ID] == 1) {
+                return 0;
     }
-    Hardware* h = getLowestTimeHardware(task_ID,0);
+    Hardware* h = getLowestTimeHardware(task_ID, 0);
     Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
     HWInstancesCount[h->getID()]++;
     newInst->addTask(task_ID);
     Instances.push_back(newInst);
     taskInstanceMap[task_ID] = newInst;
+    allocated_tasks[task_ID] = 1;
     return 1;
 }
 
 void Cost_List::addTaskToInstance(int task_ID, Instance* inst) {
-    inst->addTask(task_ID);
+    int startingTimeNewTask = getStartingTime(task_ID);
+    if(startingTimeNewTask<getInstanceStartingTime(inst)){
+        std::set<int> new_set;
+        new_set.insert(task_ID);
+        for(int tid : inst->getTaskSet()){
+            new_set.insert(tid);
+        }
+        inst->setTasksSet(new_set);
+    }
+    else{
+        inst->addTask(task_ID);
+    }
     taskInstanceMap[task_ID] = inst;
+    allocated_tasks[task_ID] = 1;
+
+    // int startingTimeNewTask = getStartingTime(task_ID);
+
+    // // Temporary set to store tasks in sorted order
+    // std::set<int> sortedTaskSet;
+
+    // // Flag to check if the new task has been inserted
+    // bool taskInserted = false;
+    // for (int taskId : inst->getTaskSet()) {
+    //     int startingTimeCurrTask = getStartingTime(taskId);
+    //     if (startingTimeNewTask < startingTimeCurrTask && !taskInserted) {
+    //         sortedTaskSet.insert(task_ID);
+    //         taskInserted = true;
+    //     }
+    //     sortedTaskSet.insert(taskId);
+    // }
+    // if (!taskInserted) {
+    //     sortedTaskSet.insert(task_ID);
+    // }
+    // inst->setTasksSet(sortedTaskSet);
+    // taskInstanceMap[task_ID] = inst;
+
+    
 }
+
 
 void Cost_List::removeTaskFromInstance(int task_ID){
     Instance* oldInst = taskInstanceMap[task_ID];
     oldInst->removeTask(task_ID);
-    if(oldInst->getTaskSet().empty()) Instances.erase(std::remove(Instances.begin(), Instances.end(), oldInst), Instances.end());
-    taskInstanceMap[task_ID] = nullptr;
+    if(oldInst->getTaskSet().empty()){
+        Instances.erase(std::remove(Instances.begin(), Instances.end(), oldInst), Instances.end());
+    } 
+    oldInst=nullptr;
+    return;
 }
 
 void Cost_List::TaskRunner(Instance i) {
@@ -520,14 +572,21 @@ void Cost_List::printSchedule() {
         int alltasks = i->getTaskSet().size();
         for (int t : i->getTaskSet()) {
                 int time = times.getTime(t, i->getHardwarePtr());
-                if(instance_ending_time<=getStartingTime(t)){
+                if(getInstanceStartingTime(i)>=getStartingTime(t)+time){
+                    std::pair<int,int> timeRunning = {getStartingTime(t),getStartingTime(t)+time};
+                    task_schedule.insert({t,timeRunning});
+                }
+                else if(instance_ending_time<=getStartingTime(t)){
                     //std::cout << "dla " << t << "ZAMIENIAN " << instance_ending_time << " NA" << getStartingTime(t) << "\n";
                     instance_ending_time = getStartingTime(t);
-
+                    std::pair<int,int> timeRunning = {getStartingTime(t),getStartingTime(t)+time};
+                    task_schedule.insert({t,timeRunning});
+                    instance_ending_time = getStartingTime(t);
                 }
-                std::pair<int,int> timeRunning = {instance_ending_time,instance_ending_time+time};
-                task_schedule.insert({t,timeRunning});
-                //std::cout << "od" <<timeRunning.first << "do" << timeRunning.second <<"\n";
+                // if()
+                // std::pair<int,int> timeRunning = {instance_ending_time,instance_ending_time+time};
+                // task_schedule.insert({t,timeRunning});
+                // //std::cout << "od" <<timeRunning.first << "do" << timeRunning.second <<"\n";
 
                 instance_ending_time += time;
                 //std::cout << "instancja konczy o " << instance_ending_time << "\n";
@@ -596,7 +655,7 @@ Instance* Cost_List::getInstance(int task_id){
 }
 
 int Cost_List::getStartingTime(int task_id) {
-    //std::cout << " DLA T: " << task_id << "__";
+    
     if(task_id == 0) return 0;
     int lowestTime = std::numeric_limits<int>::max();
     std::vector<int> bestPath;
@@ -622,6 +681,9 @@ int Cost_List::getStartingTime(int task_id) {
             continue; // Przechodzimy do następnej ścieżki, pomijając aktualną
         }
         if (pathTime < lowestTime) {
+            if(task_id == 45){
+                std::cout << "Mozliwy czas " << pathTime;
+            }
             lowestTime = pathTime;
             bestPath = path;
         }

@@ -16,6 +16,23 @@ extern const int SCALE = 100;
 
 namespace fs = std::filesystem;
 
+void simulationAndGantt(Cost_List lista){
+    bool sim;
+    bool gantt;
+    std::cout << "Czy wyświetlić wykres Gantta? 0/1\n\t->";
+    std::cin >> gantt;
+    if(sim){
+        lista.printToGantt();
+        if(system("python3 plotGantt.py")!=0){
+            system("python plotGantt.py");
+        }
+    } 
+    std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
+    std::cin >> sim;
+    if(sim) lista.runTasks();
+}
+
+
 Cost_List generateRandomCostList(){
     int tasks_amount, hardware_cores_amount, processing_units_amount, channels_amount;
     int to_screen, with_cost;
@@ -42,7 +59,7 @@ int main(){
     int menu, to_screen;
     int running = 1;
     int file_loaded = 0;
-    int sim;
+    
     srand(time(NULL));
     to_screen = 0;
     std::string file_name;
@@ -67,9 +84,7 @@ int main(){
                         std::cout << "Wybierz podział zadań:\n 1-najszybciej 2-najtaniej 3-rownomiernie\n\t->";
                         std::cin >> strategy;
                         lista.taskDistribution(strategy);
-                        std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
-                        std::cin >> sim;
-                        if(sim) lista.runTasks();
+                        simulationAndGantt(lista);
                         break;
                     case 9:
                         running = 0;
@@ -119,19 +134,12 @@ int main(){
                     case 5:
                         lista.Load_From_File("data/graph20.dat");
                         lista.taskDistribution(60);
-                        std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
-                        std::cin >> sim;
-                        if(sim) lista.runTasks();
-                        file_loaded = 1;
+                        simulationAndGantt(lista);
                         break;
                     case 8:
                         lista.Load_From_File("data/projekt.dat");
                         lista.taskDistribution(8);
-                        std::cout << "Czy przeprowadzić symulacje? 0/1\n\t->";
-                        std::cin >> sim;
-                        if(sim) lista.runTasks();
-                        file_loaded = 1;
-                        break;
+                        simulationAndGantt(lista);
                     case 9:
                         running = 0;
                         break;
@@ -143,3 +151,4 @@ int main(){
     }
     return 0;
 }
+

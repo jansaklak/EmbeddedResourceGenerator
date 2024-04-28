@@ -39,20 +39,22 @@ class Cost_List{
         std::vector<Hardware> getHardwares() const;
         std::vector<COM> getCOMS() const;
         void printSchedule();
-
+        void sortTaskSet(Instance* inst);
         std::vector<int> progress;
         std::vector<std::set<int>> HWtoTasks;
         std::vector<Instance*> Instances;
         std::map<int, int> HWInstancesCount;
         std::map<int, Instance*> taskInstanceMap;
         std::map<int,std::pair<int, int>> task_schedule;
+        void removeTaskHelper(int task_ID);
 
         void createRandomTasksGraph();
         int getStartingTime(int task_id);
         int getEndingTime(int task_id);
         int getInstanceStartingTime(const Instance* inst);
         int getInstanceEndingTime(const Instance* inst);
-        void getCurrWeight(int task_id,bool changeInstances);
+        void getCurrWeight(int task_id,bool changeInstances,int MAX_TIME);
+        int getCriticalTime();
 
         const Instance* getShortestRunningInstance();
         const Instance* getLongestRunningInstance();
@@ -77,12 +79,12 @@ class Cost_List{
 
         void ReadProgress();
 
-        double time_cost_proc(int task_id,const Instance* inst);
+        double time_cost_proc(int task_id,const Instance* inst,double t_factor = 1.0,double c_factor=1.0,double p_factor=1.0);
         double time_cost(int task_id,const Instance* inst);
         double time_weight(int task_id,const Instance* inst);
         double reuse_time_weight(int task_id,const Instance* inst);
         double cost_weight(int task_id,const Instance* inst);
-        double allocated_cost(int task_id,const Instance* inst);
+        double allocated_cost(int task_id,const Instance* inst,int MAX_TIME);
         double inst_starting(int task_id,const Instance* inst);
         double inst_time_running(int task_id,const Instance* inst);
         double reCalculate(int task_id,const Instance* inst);
@@ -107,6 +109,8 @@ class Cost_List{
         void printCOMS(std::ostream& out = std::cout) const;
         void printALL(std::string filename,bool toScreen) const;
         void printInstances();
+        void printToGantt(std::string filename="gantt_data.dat");
+
         //void TaskProgress(int task_id, int time, int hw_id);
 };
 

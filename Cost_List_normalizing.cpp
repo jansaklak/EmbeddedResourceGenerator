@@ -127,7 +127,7 @@ void normalize(std::vector<WeightTable>& values) {
 
 
 
-void Cost_List::getCurrWeight(int task_id,bool changeInstances){
+void Cost_List::getCurrWeight(int task_id,bool changeInstances,int MAX_TIME){
     std::cout<<"\nDLA ZADANIA " << task_id << "\n";
     double remaining_time;
     double longest_running;
@@ -148,7 +148,7 @@ void Cost_List::getCurrWeight(int task_id,bool changeInstances){
     for(Instance* inst : possibleInstances){
         WeightTable wt = (
             WeightTable{inst,time_cost_proc(task_id,inst),time_cost(task_id,inst),time_weight(task_id,inst),
-                    reuse_time_weight(task_id,inst),cost_weight(task_id,inst),allocated_cost(task_id,inst),
+                    reuse_time_weight(task_id,inst),cost_weight(task_id,inst),allocated_cost(task_id,inst,MAX_TIME),
                     inst_starting(task_id,inst),inst_time_running(task_id,inst),
                     reCalculate(task_id,inst),longestIdle(task_id,inst),asBefore(task_id,inst)}
         );
@@ -156,40 +156,43 @@ void Cost_List::getCurrWeight(int task_id,bool changeInstances){
         printWeightTable(wt);
     }
     normalize(weightsTable);
-    WeightTable best_w;
+    Instance* bestCurr;
     double best_weight = 0.0;
     for(WeightTable w : weightsTable){
         std::cout << *w.inst << "\t\tPunkty: " << w.SUM << "\n";
         if(w.SUM > best_weight){
             best_weight = w.SUM;
-            best_w = w;
+            bestCurr = w.inst;
         }
     }
-    if(changeInstances){
-        
-        std::cout << "PRZENOSZE ZADANIE" << task_id << "Z: " << *getInstance(task_id) << " NA: " << *best_w.inst << "\n";
-        
-        if(best_w.inst->isVirtual()){
-            removeTaskFromInstance(task_id);
-            createInstance(task_id,best_w.inst->getHardwarePtr());
-        }
-        else if(best_w.inst == getInstance(task_id)){
-            
-        }
-        else{
-            removeTaskFromInstance(task_id);
-            addTaskToInstance(task_id,best_w.inst);
-        }
-        
+    std::cout << " NAJLEPSZA INSTANCJA TO" << *bestCurr;
+    std::cout << " JEJ HW TO" << *bestCurr->getHardwarePtr();
+    std::cout << " JEJ TYP TO" << bestCurr->isVirtual();
+    bool isVirtual = bestCurr->isVirtual();
+    const Hardware* currHw = bestCurr->getHardwarePtr();
+    
+    if(bestCurr==getInstance(task_id) || changeInstances==0){
+        return;
     }
-
+    if(!bestCurr->isVirtual()){
+        removeTaskFromInstance(task_id);
+        addTaskToInstance(task_id,bestCurr);
+        return;
+    }
+    else{
+        std::cout << "PRZENOSZE ZADANIE" << task_id << "Z: " << *getInstance(task_id) << " NA: " << *bestCurr << "\n";
+        removeTaskFromInstance(task_id);
+        createInstance(task_id,currHw);
+        std::cout << " dodano do: " << *getInstance(task_id) << '\n';
+        return;
+    }  
 }
 
-double Cost_List::time_cost_proc(int task_id,const Instance* inst){
+double Cost_List::time_cost_proc(int task_id,const Instance* inst,double t_factor,double c_factor,double p_factor){
     double val;
-    val = times.getTime(task_id,inst->getHardwarePtr()) * 1.0 + times.getCost(task_id,inst->getHardwarePtr());
+    val = times.getTime(task_id,inst->getHardwarePtr()) * t_factor + times.getCost(task_id,inst->getHardwarePtr()) * c_factor;
     if(inst->isVirtual()){
-         val += (inst->getHardwarePtr()->getCost() * 1.0);
+         val += (inst->getHardwarePtr()->getCost() * p_factor);
     }
     return val;
 }
@@ -211,8 +214,8 @@ double Cost_List::cost_weight(int task_id,const Instance* inst){
     return times.getCost(task_id,inst->getHardwarePtr());
 }
 
-double Cost_List::allocated_cost(int task_id,const Instance* inst){
-    return 0;
+double Cost_List::allocated_cost(int task_id,const Instance* inst,int MAX_TIME){
+    return time_cost_proc(task_id,inst,getCriticalTime()/MAX_TIME);
 }
 
 double Cost_List::inst_starting(int task_id,const Instance* inst){
