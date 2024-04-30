@@ -22,7 +22,12 @@ class Cost_List{
         std::vector<Hardware> Hardwares;
         std::vector<COM> Channels;
         std::vector<int> allocated_tasks;
-
+        std::vector<int> progress;
+        std::vector<std::set<int>> HWtoTasks;
+        std::vector<Instance*> Instances;
+        std::map<int, int> HWInstancesCount;
+        std::map<int, Instance*> taskInstanceMap;
+        std::map<int,std::pair<int, int>> task_schedule;
 
         Graf TaskGraph;
         Times times;
@@ -34,51 +39,49 @@ class Cost_List{
         int TotalCost;
         int simulation_time_scale;
 
+        //Randomizing
+        void createRandomTasksGraph();
+        void connectRandomCH();
+        int createRandomProc();
+
+        //Simple getters
         Times getTimes() const;
         Graf getGraph() const;
         std::vector<Hardware> getHardwares() const;
         std::vector<COM> getCOMS() const;
-        void printSchedule();
-        void sortTaskSet(Instance* inst);
-        std::vector<int> progress;
-        std::vector<std::set<int>> HWtoTasks;
-        std::vector<Instance*> Instances;
-        std::map<int, int> HWInstancesCount;
-        std::map<int, Instance*> taskInstanceMap;
-        std::map<int,std::pair<int, int>> task_schedule;
-        void removeTaskHelper(int task_ID);
 
-        void createRandomTasksGraph();
+        //Adv getters
         int getStartingTime(int task_id);
         int getEndingTime(int task_id);
         int getInstanceStartingTime(const Instance* inst);
         int getInstanceEndingTime(const Instance* inst);
         void getCurrWeight(int task_id,bool changeInstances,int MAX_TIME);
         int getCriticalTime();
-
         const Instance* getShortestRunningInstance();
         const Instance* getLongestRunningInstance();
         int getTimeRunning(const Instance* inst);
         int getIdleTime(const Instance* inst,int timeStop);
-
         Hardware* getLowestTimeHardware(int task_id, int time_cost_normalized) const;
         std::vector<int> getLongestPath(int start) const;
-        Instance* getInstance(int task_id);
+        
+        //Printing
+        void printSchedule();
 
+        //Instances
+        Instance* getInstance(int task_id);
         int createInstance(int task_ID,const Hardware* h);
         int createInstance(int task_ID);
         void addTaskToInstance(int task_ID,Instance* inst);
         void removeTaskFromInstance(int task_ID);
-        void recurrent_distribution_helper(int root,std::vector<int> _currSet);
+        void sortTaskSet(Instance* inst);
+        void removeTaskHelper(int task_ID);
 
-        void connectRandomCH();
-        
+        //Simulation
         void TaskRunner(Instance i);
-
-        void updateWeights();
-
         void ReadProgress();
 
+        //Normalizing
+        void recurrent_distribution_helper(int root,std::vector<int> _currSet);
         double time_cost_proc(int task_id,const Instance* inst,double t_factor = 1.0,double c_factor=1.0,double p_factor=1.0);
         double time_cost(int task_id,const Instance* inst);
         double time_weight(int task_id,const Instance* inst);
@@ -93,24 +96,25 @@ class Cost_List{
 
     public:
 
+        //Creating and loading
         Cost_List(int _tasks,int _hcores,int _punits,int _channels,int _withCost);
         Cost_List();
         ~Cost_List();
         int Load_From_File(const std::string& filename);
-        void clear();
         void randALL();
+        void clear();
+
+        //Scheduling
         void taskDistribution(int rule);
         void runTasks();
 
-        int getRandomProc();
-
+        //Printing
         void printTasks(std::ostream& out = std::cout) const;
         void printProc(std::ostream& out = std::cout) const;
         void printCOMS(std::ostream& out = std::cout) const;
         void printALL(std::string filename,bool toScreen) const;
-        void printInstances();
         void printToGantt(std::string filename="gantt_data.dat");
-
+        void printInstances();
         //void TaskProgress(int task_id, int time, int hw_id);
 };
 

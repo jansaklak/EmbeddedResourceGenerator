@@ -120,12 +120,8 @@ void normalize(std::vector<WeightTable>& values) {
         wt.idleTime = (wt.idleTime - min_idleTime) / (max_idleTime - min_idleTime)                  * 0.1;
         wt.asBefore = wt.asBefore                                                                   * 0.05;
         wt.SUM = wt.TCP + wt.TC + wt.Tw + wt.reTw + wt.Cw + wt.StartingTime + wt.runTime + wt.reCalc + wt.idleTime + wt.asBefore;                                                                  
-    }
-    
+    } 
 }
-
-
-
 
 void Cost_List::getCurrWeight(int task_id,bool changeInstances,int MAX_TIME){
     std::cout<<"\nDLA ZADANIA " << task_id << "\n";
@@ -248,10 +244,6 @@ double Cost_List::asBefore(int task_id,const Instance* inst){
     }
     return 0;
 }
-
-
-
-
 
 int Cost_List::getInstanceStartingTime(const Instance* inst){
     int startingTime= 0;

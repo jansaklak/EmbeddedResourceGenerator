@@ -86,9 +86,8 @@ void Cost_List::taskDistribution(int rule) {
         }
         case 1:{
             for (int task_id = 0; task_id < tasks_amount; ++task_id) { //Lowest TIME
-                Hardware* hw = getLowestTimeHardware(task_id,0);
-                createInstance(task_id,hw);
-                estimatedCost += times.getCost(task_id, hw);
+                createInstance(task_id);
+                estimatedCost += times.getCost(task_id, getInstance(task_id)->getHardwarePtr());
             }
             break;
         }

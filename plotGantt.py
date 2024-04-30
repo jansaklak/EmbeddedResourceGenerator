@@ -17,7 +17,7 @@ color_index = 0
 for _, unit, _, _ in data:
     if unit not in unique_units:
         unique_units[unit] = color_index
-        colors[unit] = plt.cm.tab10(color_index)  # Używamy palety kolorów tab10
+        colors[unit] = plt.cm.tab10(color_index)
         color_index += 1
 
 grouped_data = {}
@@ -45,10 +45,8 @@ ax.grid(True)
 
 ax.legend(legend_patches, list(unique_units.keys()))
 
-
 plt.savefig('data/gantt_chart.png', format='png', dpi=1200)
 
 print("Wykres został zapisany do pliku gantt_chart.png")
-
-# Nie wyświetlamy wykresu interaktywnie
+plt.show()
 plt.close(fig)

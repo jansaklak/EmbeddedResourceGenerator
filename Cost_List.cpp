@@ -262,7 +262,7 @@ void Cost_List::printTasks(std::ostream& out) const{
 void Cost_List::printCOMS(std::ostream& out) const{
     out << "@comm " << Channels.size() <<"\n";
     for(COM c : Channels){
-        c.printCOM(Hardwares.size(),out);
+        c.printCOM(out,Hardwares);
     }
 }
 
@@ -274,13 +274,7 @@ void Cost_List::printProc(std::ostream& out) const{
     }
 }
 
-int Cost_List::getCriticalTime(){
-    int maxTime = 0;
-    for(Instance* i : Instances){
-        if(getInstanceEndingTime(i)>maxTime) maxTime = getInstanceEndingTime(i);
-    }
-    return maxTime;
-}
+
 
 void Cost_List::printToGantt(std::string filename){
     std::ofstream outputFile(filename, std::ofstream::trunc);
@@ -330,7 +324,7 @@ void Cost_List::printInstances(){
 void Cost_List::randALL(){
     times = Times(tasks_amount);
     createRandomTasksGraph();
-    getRandomProc();
+    createRandomProc();
     times.LoadHW(Hardwares);
     times.setRandomTimesAndCosts();
     connectRandomCH();
@@ -362,7 +356,7 @@ void Cost_List::printALL(std::string filename,bool toScreen) const{
     }
 }
 
-int Cost_List::getRandomProc() {
+int Cost_List::createRandomProc() {
     Hardwares.clear();
     if(hardware_cores_amount < 1 || processing_unit_amount < 1){
         std::cerr << "Błedna liczba HC lub PU\n";
@@ -383,34 +377,47 @@ void Cost_List::connectRandomCH(){
         std::cerr<< "Zła liczba kanałów";
         return;
     }
-    for(int i = 0; i<channels_amount;i++){
-        int bd = ((getRand(9)+1)*10);
-        int con_cost = (getRand(9)+1)*5;
-        int rd;
-        COM c = COM(bd,con_cost,Channels.size());
-        for(Hardware h : Hardwares){
-            if(randomBool(i+1)){
-                c.add_Hardware(&h);
-            }
-        }
-        while(c.getSize()<3){
-                rd = getRand(Hardwares.size());
-                c.add_Hardware(&Hardwares[rd]);
-        }
-        Channels.push_back( c );
-    }
+    int bd = ((getRand(9)+1)*10);
+    int con_cost = (getRand(9)+1)*5;
+    int rd;
+    COM c = COM(bd,con_cost,Channels.size());
+    
     for(Hardware h : Hardwares){
-        bool All_connected = false;
-        for(COM c : Channels){
-            if(c.isConnected(&h)){
-                All_connected = true;
-            }
-        }
-        if(All_connected == false){
-                Channels[0].add_Hardware(&h);
-            }
-        //std::cout << " ROBIE";
+            std::cout << "DODAJE" << h;
+            c.add_Hardware(&h);
     }
+    Channels.push_back(c);
+    if(channels_amount>1){
+        for(int j =1;j<channels_amount;j++){
+            bd = ((getRand(9)+1)*10);
+            con_cost = (getRand(9)+1)*5;
+            COM c = COM(bd,con_cost,Channels.size());
+            for(int k = 0;k<(Hardwares.size()/2);k++){
+                if(randomBool(3)){
+                    Hardware randHW = Hardwares[getRand(Hardwares.size() - 1)];
+                    Channels[0].remove_Hardware(&randHW);
+                    c.add_Hardware(&randHW);
+                }
+            }
+            Channels.push_back(c);
+        }
+    }
+    for(COM c : Channels){
+        if(c.getSize()<1){
+            Hardware randHW = Hardwares[getRand(Hardwares.size() - 1)];
+            while(1){
+                randHW = Hardwares[getRand(Hardwares.size() - 1)];
+                if(!c.isConnected(&randHW)) break;
+            }
+            c.add_Hardware(&randHW);
+            while(1){
+                randHW = Hardwares[getRand(Hardwares.size() - 1)];
+                if(!c.isConnected(&randHW)) break;
+            }
+            c.add_Hardware(&randHW);
+        }
+    }
+
     return;
 }
 
@@ -434,27 +441,7 @@ void Cost_List::runTasks() {
 }
 
 
-Hardware* Cost_List::getLowestTimeHardware(int task_id, int time_cost_normalized) const{
-    Hardware* outHW = nullptr;
-    int min_time = INF;
-    for (const Hardware& hw : Hardwares) {
-        int time;
-        if(time_cost_normalized == 0){
-            time = times.getTime(task_id, &hw);
-        }
-        else if (time_cost_normalized == 1){
-            time = times.getCost(task_id, &hw);
-        }
-        else if(time_cost_normalized == 2){
-            time = times.getNormalized(task_id, &hw);
-        }
-        if (time < min_time) {
-            min_time = time;
-            outHW = &const_cast<Hardware&>(hw);
-        }
-    }
-    return outHW;
-}
+
 
 int Cost_List::createInstance(int task_ID, const Hardware* h) {
     if(allocated_tasks[task_ID]==1){
@@ -605,97 +592,9 @@ void Cost_List::printSchedule() {
     return;
 }
 
-std::vector<int> Cost_List::getLongestPath(int start) const {
-        std::vector<std::vector<Edge>> adjList = TaskGraph.getAdjList();
-        std::vector<int> dist(TaskGraph.getVerticesSize(), std::numeric_limits<int>::min());
-        std::vector<int> inDegree(TaskGraph.getVerticesSize(), 0);
-        std::queue<int> q;
-        for (const auto& edges : adjList) {
-            for (const auto& edge : edges) {
-                int v = edge.getV2();
-                inDegree[v]++;
-            }
-        }
-        for (int i = 0; i < TaskGraph.getVerticesSize(); ++i) {
-            if (inDegree[i] == 0)
-                q.push(i);
-        }
-
-        std::vector<int> longestPath;
-        while (!q.empty()) {
-            int u = q.front();
-            q.pop();
-
-            longestPath.push_back(u);
-
-            for (const auto& edge : adjList[u]) {
-                int v = edge.getV2();
-                int w = times.getTime(edge.getV2(),getLowestTimeHardware(edge.getV2(),0));
-
-                if (dist[u] + w > dist[v]) {
-                    dist[v] = dist[u] + w;
-                }
-                inDegree[v]--;
-                if (inDegree[v] == 0)
-                    q.push(v);
-            }
-        }
-
-        return longestPath;
-    }
-
-Instance* Cost_List::getInstance(int task_id){
-    auto it = taskInstanceMap.find(task_id);
-    if (it != taskInstanceMap.end()) {
-        return it->second;
-    } else {
-        std::cerr << "blad dystrybutora zadan dla zadania " << task_id <<  std::endl;
-        return nullptr;
-    }
-}
-
-int Cost_List::getStartingTime(int task_id) {
-    
-    if(task_id == 0) return 0;
-    int lowestTime = std::numeric_limits<int>::max();
-    std::vector<int> bestPath;
-    for (std::vector<int> path : TaskGraph.DFS(0, task_id)) {
-        int pathTime = 0;
-        bool skipPath = false; // Flaga wskazująca, czy należy pominąć bieżącą ścieżkę
-        for (int t_id : path) {
-            if (t_id == task_id) {
-                break; // Kończymy przetwarzanie ścieżki, jeśli dotarliśmy do szukanego zadania
-            } else {
-                //std::cout << "ODWIEDZAM " << t_id << "\n";
-                const Instance* inst = getInstance(t_id);
-                if (inst == nullptr) {
-                    skipPath = true;
-                    //std::cout << " PRZERYWAM T" << task_id << "//";
-                    break;
-                }
-                const Hardware* hardwarePtr = inst->getHardwarePtr();
-                pathTime += times.getTime(t_id, hardwarePtr);
-            }
-        }
-        if (skipPath) {
-            continue; // Przechodzimy do następnej ścieżki, pomijając aktualną
-        }
-        if (pathTime < lowestTime) {
-            if(task_id == 45){
-                std::cout << "Mozliwy czas " << pathTime;
-            }
-            lowestTime = pathTime;
-            bestPath = path;
-        }
-    }
-    return lowestTime;
-}
 
 
-int Cost_List::getEndingTime(int task_id){
-    int runningTime = times.getTime(task_id,getInstance(task_id)->getHardwarePtr());
-    return getStartingTime(task_id) + runningTime;
-}
+
 
 // std::mutex removeMutex;
 // std::mutex addMutex;

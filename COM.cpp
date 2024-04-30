@@ -18,6 +18,15 @@ void COM::add_Hardware(const Hardware* h) {
     HW_line.push_back(*h);
 }
 
+void COM::remove_Hardware(const Hardware* h) {
+    for (auto it = HW_line.begin(); it != HW_line.end(); ++it) {
+        if ((*it).getID() == h->getID()) {
+            HW_line.erase(it);
+            break;
+        }
+    }
+}
+
 int COM::getSize() const{
     return HW_line.size();
 }
@@ -35,16 +44,16 @@ bool COM::operator<(const COM& other) const {
         return id < other.id;
 }
 
-void COM::printCOM(int hw_size,std::ostream& out) const{
+void COM::printCOM(std::ostream& out,std::vector<Hardware> hws) const{
     out << "CHAN" << id << " " << bandwidth << " " << connect_cost << " ";
-            for (Hardware h : HW_line){
+            for (Hardware h : hws){
                 out << isConnected(&h) << " ";
             }
     out << "\n";
 }
 
 bool COM::isConnected(const Hardware* other) const{
-    for(Hardware h : HW_line){
+    for(Hardware h : HW_line){  
         if(h.getID() == other->getID()) return true;
     }
     return false;

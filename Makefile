@@ -1,10 +1,9 @@
 CC=g++
 CFLAGS=-std=c++17 -g
-
 all: main
 
-main: main.o Graf.o Hardware.o Times.o COM.o Cost_List.o Edge.o Cost_List_scheduler.o Cost_List_normalizing.o Instance.o
-	$(CC) $(CFLAGS) main.o Graf.o Hardware.o Edge.o Times.o COM.o Cost_List.o Cost_List_scheduler.o Cost_List_normalizing.o Instance.o  -o main
+main: main.o Graf.o Hardware.o Times.o COM.o Cost_List.o Edge.o Cost_List_scheduler.o Cost_List_normalizing.o Cost_List_getters.o Instance.o
+	$(CC) $(CFLAGS) main.o Graf.o Hardware.o Edge.o Times.o COM.o Cost_List.o Cost_List_scheduler.o Cost_List_normalizing.o Instance.o Cost_List_getters.o -o main
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp
@@ -33,9 +32,11 @@ Instance.o: Instance.cpp
 Cost_List_normalizing.o: Cost_List_normalizing.cpp
 	$(CC) $(CFLAGS) -c Cost_List_normalizing.cpp
 
-
 Cost_List_scheduler.o: Cost_List_scheduler.cpp
 	$(CC) $(CFLAGS) -c Cost_List_scheduler.cpp
+
+Cost_List_getters.o: Cost_List_getters.cpp
+	$(CC) $(CFLAGS) -c Cost_List_getters.cpp
 
 
 run: main

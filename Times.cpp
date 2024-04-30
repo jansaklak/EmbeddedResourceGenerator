@@ -64,8 +64,8 @@ void Times::setRandomTimesAndCosts() {
     for (int t = 0; t < graph_size; t++) {
         for (Hardware hw : HW_vec) {
             randComplexity = 1 + rand() % (SCALE / 4);
-            randTime = randComplexity * SCALE * sqrt(SCALE) / (hw._getCost() + rand() % (SCALE / 8));
-            randCost = SCALE * 8 / randTime + rand() % (SCALE / 8);
+            randTime = randComplexity * SCALE * sqrt(SCALE) / (hw._getCost() + 1 + rand() % (SCALE / 8));
+            randCost = SCALE * 8 / 1 + randTime + rand() % (SCALE / 8);
             times_row.push_back(randTime);
             costs_row.push_back(randCost);
         }
