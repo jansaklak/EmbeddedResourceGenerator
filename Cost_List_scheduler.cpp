@@ -59,6 +59,7 @@ void Cost_List::taskDistribution(int rule) {
     int num_allocated = 0;
     allocated_tasks.resize(tasks_amount,0);
     switch (rule) {
+
         case 8:{        
             int LOOP_COUNTER;
             int HARD_TIME = 1000;
@@ -79,11 +80,19 @@ void Cost_List::taskDistribution(int rule) {
             for(int currTask : bfs_tasks){
                 getCurrWeight(currTask,1,HARD_TIME);
             }
-            
-            
-
             break;
         }
+
+        case 61:{        
+            int LOOP_COUNTER;
+            int HARD_TIME = 1000;
+            int currTask = 0;
+            int min_time;
+            std::vector<int> bfs_tasks = TaskGraph.BFS();
+            constructByWeight(bfs_tasks);
+            break;
+        }
+
         case 1:{
             for (int task_id = 0; task_id < tasks_amount; ++task_id) { //Lowest TIME
                 createInstance(task_id);
@@ -234,7 +243,6 @@ void Cost_List::taskDistribution(int rule) {
 
         case 60:{
             createInstance(0);
-            std::cout << "Tutaj";
             int allocatedTasks[tasks_amount] = {0};
             allocatedTasks[0] = 1;
             for(int i : TaskGraph.BFS()){
@@ -351,5 +359,6 @@ void Cost_List::taskDistribution(int rule) {
             std::cerr << "Nieznana reguła dystrybucji zadań\n";
             break;}
     }
+    printSchedule();
     printInstances();
 }

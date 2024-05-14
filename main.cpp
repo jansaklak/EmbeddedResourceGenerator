@@ -21,7 +21,7 @@ void simulationAndGantt(Cost_List lista){
     bool gantt;
     std::cout << "Czy wyświetlić wykres Gantta? 0/1\n\t->";
     std::cin >> gantt;
-    if(sim){
+    if(gantt){
         lista.printToGantt();
         if(system("python3 plotGantt.py")!=0){
             system("python plotGantt.py");
@@ -95,7 +95,7 @@ int main(){
             }
         }
         else{
-            std::cout << "Nacisnij 0 aby stworzyć nowy plik\nNacisnij 1 aby wczytać plik\nNacisnij 5 aby wykonać zad. 5\nNacisnij 8 aby otworzyć projekt\n\t->";
+            std::cout << "Nacisnij 0 aby stworzyć nowy plik\nNacisnij 1 aby wczytać plik\nNacisnij 5 aby wykonać zad. 5\nNacisnij 6 aby wykonać zad. 6\nNacisnij 8 aby otworzyć projekt\n\t->";
             std::cin >> menu;
             if(std::cin.fail()){
                 std::cin.clear();
@@ -134,6 +134,11 @@ int main(){
                     case 5:
                         lista.Load_From_File("data/graph20.dat");
                         lista.taskDistribution(60);
+                        simulationAndGantt(lista);
+                        break;
+                    case 6:
+                        lista.Load_From_File("data/graph20.dat");
+                        lista.taskDistribution(8);
                         simulationAndGantt(lista);
                         break;
                     case 8:

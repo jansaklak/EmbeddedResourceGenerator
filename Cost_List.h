@@ -29,6 +29,8 @@ class Cost_List{
         std::map<int, Instance*> taskInstanceMap;
         std::map<int,std::pair<int, int>> task_schedule;
 
+        void constructByWeight(std::vector<int> bfs_tasks,int MAX_TIME=INF);
+
         Graf TaskGraph;
         Times times;
         int tasks_amount;

@@ -117,14 +117,62 @@ void normalize(std::vector<WeightTable>& values) {
         wt.StartingTime = (wt.StartingTime - min_tasksOnInst) / (max_tasksOnInst - min_tasksOnInst) * 0.05;
         wt.runTime = (wt.runTime - min_runTime) / (max_runTime - min_runTime)                       * 0.1;
         wt.reCalc = (wt.reCalc - min_reCalc) / (max_reCalc - min_reCalc)                            * 0.3;
-        wt.idleTime = (wt.idleTime - min_idleTime) / (max_idleTime - min_idleTime)                  * 0.1;
+        //wt.idleTime = (wt.idleTime - min_idleTime) / (max_idleTime - min_idleTime)                * 0.1;
+        wt.idleTime = (max_idleTime - wt.idleTime) / (max_idleTime - min_idleTime)                  * 0.1;
         wt.asBefore = wt.asBefore                                                                   * 0.05;
         wt.SUM = wt.TCP + wt.TC + wt.Tw + wt.reTw + wt.Cw + wt.StartingTime + wt.runTime + wt.reCalc + wt.idleTime + wt.asBefore;                                                                  
     } 
 }
 
+void Cost_List::constructByWeight(std::vector<int> bfs_tasks,int MAX_TIME){
+    std::vector<Instance*> possibleInstances;
+    int i = tasks_amount * 10;
+    for (const Hardware& hw : Hardwares){
+        const Hardware* hw_ptr = &hw;
+        Instance* newInst = new Instance(i,hw_ptr,1);
+        possibleInstances.push_back(newInst);
+        ++i;
+    }
+    for(int task_id : bfs_tasks){
+        //std::cout << "\n\t ZADANIE" << task_id << "\n";
+        std::vector<WeightTable> weightsTable;
+        for(Instance* inst : possibleInstances){
+            WeightTable wt = (
+                WeightTable{inst,time_cost_proc(task_id,inst),time_cost(task_id,inst),time_weight(task_id,inst),
+                        reuse_time_weight(task_id,inst),cost_weight(task_id,inst),allocated_cost(task_id,inst,MAX_TIME),
+                        inst_starting(task_id,inst),inst_time_running(task_id,inst),
+                        reCalculate(task_id,inst),longestIdle(task_id,inst),asBefore(task_id,inst)}
+            );
+            weightsTable.push_back(wt);
+            //printWeightTable(wt);
+        }
+        normalize(weightsTable);
+        Instance* bestCurr;
+        double best_weight = 0.0;
+        for(WeightTable w : weightsTable){
+            //std::cout << *w.inst << "\t\tPunkty: " << w.SUM << "\n";
+            if(w.SUM > best_weight){
+                best_weight = w.SUM;
+                bestCurr = w.inst;
+            }
+        }
+        //std::cout << " NAJLEPSZA INSTANCJA TO: " << *bestCurr;
+        //std::cout << " JEJ HW TO: " << *bestCurr->getHardwarePtr();
+        //std::cout << " JEJ TYP TO: " << bestCurr->isVirtual();
+        bool isVirtual = bestCurr->isVirtual();
+        const Hardware* currHw = bestCurr->getHardwarePtr();
+        if(!isVirtual){
+            addTaskToInstance(task_id,bestCurr);
+        }
+        else{
+            createInstance(task_id,bestCurr->getHardwarePtr());
+            possibleInstances.push_back(getInstance(task_id));
+        }
+    }
+}
+
 void Cost_List::getCurrWeight(int task_id,bool changeInstances,int MAX_TIME){
-    std::cout<<"\nDLA ZADANIA " << task_id << "\n";
+    //std::cout<<"\nDLA ZADANIA " << task_id << "\n";
     double remaining_time;
     double longest_running;
     double least_running;
@@ -149,21 +197,21 @@ void Cost_List::getCurrWeight(int task_id,bool changeInstances,int MAX_TIME){
                     reCalculate(task_id,inst),longestIdle(task_id,inst),asBefore(task_id,inst)}
         );
         weightsTable.push_back(wt);
-        printWeightTable(wt);
+        //printWeightTable(wt);
     }
     normalize(weightsTable);
     Instance* bestCurr;
-    double best_weight = 0.0;
+    double best_weight = INF;
     for(WeightTable w : weightsTable){
-        std::cout << *w.inst << "\t\tPunkty: " << w.SUM << "\n";
-        if(w.SUM > best_weight){
+        //std::cout << *w.inst << "\t\tPunkty: " << w.SUM << "\n";
+        if(w.SUM < best_weight){
             best_weight = w.SUM;
             bestCurr = w.inst;
         }
     }
-    std::cout << " NAJLEPSZA INSTANCJA TO" << *bestCurr;
-    std::cout << " JEJ HW TO" << *bestCurr->getHardwarePtr();
-    std::cout << " JEJ TYP TO" << bestCurr->isVirtual();
+    //std::cout << " NAJLEPSZA INSTANCJA TO: " << *bestCurr;
+    //std::cout << " JEJ HW TO: " << *bestCurr->getHardwarePtr();
+    //std::cout << " JEJ TYP TO: " << bestCurr->isVirtual();
     bool isVirtual = bestCurr->isVirtual();
     const Hardware* currHw = bestCurr->getHardwarePtr();
     
@@ -176,15 +224,15 @@ void Cost_List::getCurrWeight(int task_id,bool changeInstances,int MAX_TIME){
         return;
     }
     else{
-        std::cout << "PRZENOSZE ZADANIE" << task_id << "Z: " << *getInstance(task_id) << " NA: " << *bestCurr << "\n";
+        //std::cout << "PRZENOSZE ZADANIE" << task_id << "Z: " << *getInstance(task_id) << " NA: " << *bestCurr << "\n";
         removeTaskFromInstance(task_id);
         createInstance(task_id,currHw);
-        std::cout << " dodano do: " << *getInstance(task_id) << '\n';
+        //std::cout << " dodano do: " << *getInstance(task_id) << '\n';
         return;
     }  
 }
 
-double Cost_List::time_cost_proc(int task_id,const Instance* inst,double t_factor,double c_factor,double p_factor){
+double Cost_List::time_cost_proc(int task_id,const Instance* inst,double t_factor,double c_factor,double p_factor){ //WIECEJ - GORZEJ
     double val;
     val = times.getTime(task_id,inst->getHardwarePtr()) * t_factor + times.getCost(task_id,inst->getHardwarePtr()) * c_factor;
     if(inst->isVirtual()){
@@ -193,116 +241,56 @@ double Cost_List::time_cost_proc(int task_id,const Instance* inst,double t_facto
     return val;
 }
 
-double Cost_List::time_cost(int task_id,const Instance* inst){
+double Cost_List::time_cost(int task_id,const Instance* inst){ //WIECEJ - GORZEJ
     return times.getTime(task_id,inst->getHardwarePtr()) * 1.0 + times.getCost(task_id,inst->getHardwarePtr());
 }
 
-double Cost_List::time_weight(int task_id,const Instance* inst){
+double Cost_List::time_weight(int task_id,const Instance* inst){ //WIECEJ - GORZEJ
     return times.getTime(task_id,inst->getHardwarePtr());
 }
 
-double Cost_List::reuse_time_weight(int task_id,const Instance* inst){
-    if(inst->isVirtual()) return 0;
+double Cost_List::reuse_time_weight(int task_id,const Instance* inst){ //WIECEJ - GORZEJ
+    if(inst->isVirtual()) return INF;
     return times.getTime(task_id,inst->getHardwarePtr());    
 }
 
-double Cost_List::cost_weight(int task_id,const Instance* inst){
+double Cost_List::cost_weight(int task_id,const Instance* inst){ //WIECEJ - GORZEJ
     return times.getCost(task_id,inst->getHardwarePtr());
 }
 
-double Cost_List::allocated_cost(int task_id,const Instance* inst,int MAX_TIME){
+double Cost_List::allocated_cost(int task_id,const Instance* inst,int MAX_TIME){ //WIECEJ - GORZEJ
     return time_cost_proc(task_id,inst,getCriticalTime()/MAX_TIME);
 }
 
-double Cost_List::inst_starting(int task_id,const Instance* inst){
-    if(inst->isVirtual()) return 0;
+double Cost_List::inst_starting(int task_id,const Instance* inst){ //WIECEJ - GORZEJ
+    if(inst->isVirtual()) return INF;
     return inst->getTaskSet().size();
 }
 
-double Cost_List::inst_time_running(int task_id,const Instance* inst){
-    if(inst->isVirtual()) return 0;
+double Cost_List::inst_time_running(int task_id,const Instance* inst){ //WIECEJ - GORZEJ
+    if(inst->isVirtual()) return INF;
     return getTimeRunning(inst);
 }
 
-double Cost_List::reCalculate(int task_id,const Instance* inst){
+double Cost_List::reCalculate(int task_id,const Instance* inst){ 
     return 0;
 }
 
-double Cost_List::longestIdle(int task_id,const Instance* inst){
+double Cost_List::longestIdle(int task_id,const Instance* inst){ //WIECEJ - LEPIEJ
     if(inst->isVirtual()) return 0;
     return getIdleTime(inst,getStartingTime(task_id));
 }
 
-double Cost_List::asBefore(int task_id,const Instance* inst){
+double Cost_List::asBefore(int task_id,const Instance* inst){ //WIECEJ - GORZEJ
     if(inst->isVirtual()){
-        return 0;
+        return 1;
     }
     for(int i : TaskGraph.getInNeighbourIndices(task_id)){
         if(getInstance(i) == inst){
-            return 1;
+            return 0;
         }
     }
-    return 0;
+    return 1;
 }
 
-int Cost_List::getInstanceStartingTime(const Instance* inst){
-    int startingTime= 0;
-    for(int i : inst->getTaskSet()){
-        if(getStartingTime(i)>startingTime) startingTime = getStartingTime(i);
-    }
-    return startingTime;
-}
 
-int Cost_List::getInstanceEndingTime(const Instance* inst){
-    int endingTime= 0;
-    for(int i : inst->getTaskSet()){
-        if(getEndingTime(i)>endingTime) endingTime = getEndingTime(i);
-    }
-    return endingTime;
-}
-
-int Cost_List::getTimeRunning(const Instance* inst){
-    int total_time =0;
-    for(int i : inst->getTaskSet()){
-        total_time += getEndingTime(i) - getStartingTime(i);
-    }
-    return total_time;
-}
-
-int Cost_List::getIdleTime(const Instance* inst,int timeStop) {
-        int total_time =0;
-        for(int i : inst->getTaskSet()){
-            if(getStartingTime(i) + (getEndingTime(i) - getStartingTime(i)) >=timeStop){
-                break;
-            }
-            total_time += getEndingTime(i) - getStartingTime(i);
-            
-        }
-        return timeStop - total_time;
-}
-
-const Instance* Cost_List::getLongestRunningInstance() {
-    int longest_running = std::numeric_limits<int>::min();
-    const Instance* longest = nullptr;
-    for (const Instance* inst : Instances) {
-        int running_time = getTimeRunning(inst);
-        if (running_time > longest_running) {
-            longest_running = running_time;
-            longest = inst;
-        }
-    }
-    return longest;
-}
-
-const Instance* Cost_List::getShortestRunningInstance() {
-        int shortest_running = std::numeric_limits<int>::max();
-        const Instance* shortest = nullptr;
-        for (const Instance* inst : Instances) {
-        int running_time = getTimeRunning(inst);
-            if (running_time < shortest_running) {
-                shortest_running = running_time;
-                shortest = inst;
-            }
-        }
-        return shortest;
-}

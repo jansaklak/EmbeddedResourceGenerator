@@ -48,9 +48,6 @@ int Cost_List::getStartingTime(int task_id) {
             continue; // Przechodzimy do następnej ścieżki, pomijając aktualną
         }
         if (pathTime < lowestTime) {
-            if(task_id == 45){
-                std::cout << "Mozliwy czas " << pathTime;
-            }
             lowestTime = pathTime;
             bestPath = path;
         }
@@ -124,8 +121,76 @@ std::vector<int> Cost_List::getLongestPath(int start) const {
 
 int Cost_List::getCriticalTime(){
     int maxTime = 0;
-    for(Instance* i : Instances){
-        if(getInstanceEndingTime(i)>maxTime) maxTime = getInstanceEndingTime(i);
+    // for(Instance* i : Instances){
+    //     if(getInstanceEndingTime(i)>maxTime) maxTime = getInstanceEndingTime(i);
+    // }
+    for ( const auto &p : task_schedule )
+    {
+        if(p.second.second > maxTime){
+            maxTime = p.second.second;
+        }
     }
     return maxTime;
+}
+
+int Cost_List::getInstanceStartingTime(const Instance* inst){
+    int startingTime= 0;
+    for(int i : inst->getTaskSet()){
+        if(getStartingTime(i)>startingTime) startingTime = getStartingTime(i);
+    }
+    return startingTime;
+}
+
+int Cost_List::getInstanceEndingTime(const Instance* inst){
+    int endingTime= 0;
+    for(int i : inst->getTaskSet()){
+        if(getEndingTime(i)>endingTime) endingTime = getEndingTime(i);
+    }
+    return endingTime;
+}
+
+int Cost_List::getTimeRunning(const Instance* inst){
+    int total_time =0;
+    for(int i : inst->getTaskSet()){
+        total_time += getEndingTime(i) - getStartingTime(i);
+    }
+    return total_time;
+}
+
+int Cost_List::getIdleTime(const Instance* inst,int timeStop) {
+        int total_time =0;
+        for(int i : inst->getTaskSet()){
+            if(getStartingTime(i) + (getEndingTime(i) - getStartingTime(i)) >=timeStop){
+                break;
+            }
+            total_time += getEndingTime(i) - getStartingTime(i);
+            
+        }
+        return timeStop - total_time;
+}
+
+const Instance* Cost_List::getLongestRunningInstance() {
+    int longest_running = std::numeric_limits<int>::min();
+    const Instance* longest = nullptr;
+    for (const Instance* inst : Instances) {
+        int running_time = getTimeRunning(inst);
+        if (running_time > longest_running) {
+            longest_running = running_time;
+            longest = inst;
+        }
+    }
+    return longest;
+}
+
+const Instance* Cost_List::getShortestRunningInstance() {
+        int shortest_running = std::numeric_limits<int>::max();
+        const Instance* shortest = nullptr;
+        for (const Instance* inst : Instances) {
+        int running_time = getTimeRunning(inst);
+            if (running_time < shortest_running) {
+                shortest_running = running_time;
+                shortest = inst;
+            }
+        }
+        return shortest;
 }
