@@ -80,7 +80,9 @@ void Cost_List::taskDistribution(int rule) {
                 createInstance(currTask); // == createInstance(currTask,getLowestTimeHardware(currTask,0));
             }
 
-            std::vector<int> maxWezel =  getMaxPath(0);
+            createPaths(TaskGraph.getAdjList());
+
+            std::deque<int> maxWezel = getMaxPath();
             
             for (int task : maxWezel){
                 std::cout <<"to: " << task << "\n";
