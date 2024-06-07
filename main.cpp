@@ -81,10 +81,22 @@ int main(){
                         break;
                     case 1:
                         int strategy;
-                        std::cout << "Wybierz podział zadań:\n 1-najszybciej 2-najtaniej 3-rownomiernie\n\t->";
+                        std::cout << "Wybierz podział zadań:\n 1-najszybciej 2-najtaniej 3-rownomiernie \n 5- wg ZAD5 6-wg ZAD6 7-wg ZAD7 8-wg Projektu 9-wszystko na najlepszym dla 0\n\t->";
                         std::cin >> strategy;
-                        lista.taskDistribution(strategy);
-                        simulationAndGantt(lista);
+                        if(strategy == 7){
+                            std::cout << "------";
+                            lista.taskDistribution(1);
+                            std::cout << "\t\tZaczynam od rozwiązania najszybszego: \n";
+                            simulationAndGantt(lista);
+                            std::cout << "\t\tPo rafinacji: \n";
+                            lista.taskDistribution(11);
+                            simulationAndGantt(lista);
+                            break;
+                        }else{
+                            lista.taskDistribution(strategy);
+                            simulationAndGantt(lista);
+                        }
+                        
                         break;
                     case 9:
                         running = 0;
@@ -95,7 +107,7 @@ int main(){
             }
         }
         else{
-            std::cout << "Nacisnij 0 aby stworzyć nowy plik\nNacisnij 1 aby wczytać plik\nNacisnij 5 aby wykonać zad. 5\nNacisnij 6 aby wykonać zad. 6\nNacisnij 8 aby otworzyć projekt\n\t->";
+            std::cout << "Nacisnij 0 aby stworzyć nowy plik\nNacisnij 1 aby wczytać plik\nNacisnij 5 aby wykonać zad. 5\nNacisnij 6 aby wykonać zad. 6\nNacisnij 7 aby wykonać zad. 7\nNacisnij 8 aby otworzyć projekt\n\t->";
             std::cin >> menu;
             if(std::cin.fail()){
                 std::cin.clear();
@@ -133,7 +145,7 @@ int main(){
                         break;
                     case 5:
                         lista.Load_From_File("data/graph20.dat");
-                        lista.taskDistribution(60);
+                        lista.taskDistribution(5);
                         simulationAndGantt(lista);
                         break;
                     case 6:
@@ -141,10 +153,20 @@ int main(){
                         lista.taskDistribution(8);
                         simulationAndGantt(lista);
                         break;
+                    case 7:
+                        lista.Load_From_File("data/graph20.dat");
+                        lista.taskDistribution(1);
+                        std::cout << "\t\tZaczynam od rozwiązania najszybszego: \n";
+                        simulationAndGantt(lista);
+                        std::cout << "\t\tPo rafinacji: \n";
+                        lista.taskDistribution(11);
+                        simulationAndGantt(lista);
+                        break;
                     case 8:
                         lista.Load_From_File("data/projekt.dat");
                         lista.taskDistribution(8);
                         simulationAndGantt(lista);
+                        break;
                     case 9:
                         running = 0;
                         break;

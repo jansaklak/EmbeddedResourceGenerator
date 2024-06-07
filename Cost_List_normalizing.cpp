@@ -11,36 +11,6 @@
 #include <algorithm>
 #include <map>
 
-struct WeightTable {
-    Instance* inst;
-    double TCP;
-    double TC;
-    double Tw;
-    double reTw;
-    double Cw;
-    double reCw;
-    double StartingTime;
-    double runTime;
-    double reCalc;
-    double idleTime;
-    double asBefore;
-    double SUM;
-};
-
-void printWeightTable(const WeightTable& wt) {
-    std::cout << "INST: " << std::setw(1) << *wt.inst << "\t|";
-    std::cout << "TCP: " << std::setw(5) << wt.TCP << "|";
-    std::cout << "TC: " << std::setw(5) << wt.TC << "|";
-    std::cout << "Tw: " << std::setw(5) << wt.Tw << "|";
-    std::cout << "reTw: " << std::setw(5) << wt.reTw << "|";
-    std::cout << "Cw: " << std::setw(5) << wt.Cw << "|";
-    std::cout << "reCw: " << std::setw(5) << wt.reCw << "|";
-    std::cout << "tasksOnInst: " << std::setw(5) << wt.StartingTime << "|";
-    std::cout << "runTime: " << std::setw(5) << wt.runTime << "|";
-    std::cout << "reCalc: " << std::setw(5) << wt.reCalc << "|";
-    std::cout << "idleTime: " << std::setw(5) << wt.idleTime << "|";
-    std::cout << "asBefore: " << std::setw(5) << wt.asBefore << "\n";
-}
 
 void normalize(std::vector<WeightTable>& values) {
     if (values.empty()) return;
@@ -133,6 +103,7 @@ void Cost_List::constructByWeight(std::vector<int> bfs_tasks,int MAX_TIME){
         possibleInstances.push_back(newInst);
         ++i;
     }
+    std::cout << "ZROBIONE";
     for(int task_id : bfs_tasks){
         //std::cout << "\n\t ZADANIE" << task_id << "\n";
         std::vector<WeightTable> weightsTable;
@@ -141,7 +112,7 @@ void Cost_List::constructByWeight(std::vector<int> bfs_tasks,int MAX_TIME){
                 WeightTable{inst,time_cost_proc(task_id,inst),time_cost(task_id,inst),time_weight(task_id,inst),
                         reuse_time_weight(task_id,inst),cost_weight(task_id,inst),allocated_cost(task_id,inst,MAX_TIME),
                         inst_starting(task_id,inst),inst_time_running(task_id,inst),
-                        reCalculate(task_id,inst),longestIdle(task_id,inst),asBefore(task_id,inst)}
+                        reCalculate(task_id,inst),longestIdle(task_id,inst),asBefore(task_id,inst),0}
             );
             weightsTable.push_back(wt);
             //printWeightTable(wt);
@@ -194,7 +165,7 @@ void Cost_List::getCurrWeight(int task_id,bool changeInstances,int MAX_TIME){
             WeightTable{inst,time_cost_proc(task_id,inst),time_cost(task_id,inst),time_weight(task_id,inst),
                     reuse_time_weight(task_id,inst),cost_weight(task_id,inst),allocated_cost(task_id,inst,MAX_TIME),
                     inst_starting(task_id,inst),inst_time_running(task_id,inst),
-                    reCalculate(task_id,inst),longestIdle(task_id,inst),asBefore(task_id,inst)}
+                    reCalculate(task_id,inst),longestIdle(task_id,inst),asBefore(task_id,inst),0}
         );
         weightsTable.push_back(wt);
         //printWeightTable(wt);
@@ -258,8 +229,8 @@ double Cost_List::cost_weight(int task_id,const Instance* inst){ //WIECEJ - GORZ
     return times.getCost(task_id,inst->getHardwarePtr());
 }
 
-double Cost_List::allocated_cost(int task_id,const Instance* inst,int MAX_TIME){ //WIECEJ - GORZEJ
-    return time_cost_proc(task_id,inst,getCriticalTime()/MAX_TIME);
+double Cost_List::allocated_cost(int task_id,const Instance* inst,double MAX_TIME){ //WIECEJ - GORZEJ
+    return time_cost_proc(task_id,inst,getCriticalTime()/MAX_TIME); //MAX_TIME rosnie to coraz mniej istotny czas
 }
 
 double Cost_List::inst_starting(int task_id,const Instance* inst){ //WIECEJ - GORZEJ

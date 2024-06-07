@@ -40,7 +40,7 @@ void Cost_List::recurrent_distribution_helper(int root,std::vector<int> _currSet
 
         1. Zaczynamy od najszybszego podziału zadań
 
-        2. Wybieramy węzeł ( z najlepszą normalizacją)
+        2. Wybieramy węzeł ( z najlepszą normalizacją) ??
 
         3. Normalizacja uwzględnia MAX_TIME
 
@@ -61,6 +61,92 @@ void Cost_List::taskDistribution(int rule) {
     switch (rule) {
 
         case 8:{        
+            int LOOP_COUNTER = 3;
+            int HARD_TIME = 3000;
+            int currTask = 0;
+            //int min_time;
+            std::vector<int> bfs_tasks = TaskGraph.BFS();
+
+            //Tworzenie najszybszego podziału razem z ponownym korzystaniem ze sprzetu
+            for(int currTask : bfs_tasks){
+                Hardware* hw = getLowestTimeHardware(currTask,0);
+                for(Instance* inst : Instances){
+                    if(inst->getHardwarePtr()==hw && getInstanceEndingTime(inst) <= getStartingTime(currTask)){
+                        addTaskToInstance(currTask,inst);
+                        allocated_tasks[currTask] = 1;
+                        break;
+                    }
+                }
+                createInstance(currTask); // == createInstance(currTask,getLowestTimeHardware(currTask,0));
+            }
+
+            std::vector<int> maxWezel =  getMaxPath(0);
+            
+            for (int task : maxWezel){
+                std::cout <<"to: " << task << "\n";
+            }
+            break;
+        }
+
+        case 81:{        
+            int LOOP_COUNTER;
+            int HARD_TIME = 10000;
+            int currTask = 0;
+            int min_time;
+            std::vector<int> bfs_tasks = TaskGraph.BFS();
+            for(int currTask : bfs_tasks){
+                Hardware* hw = getLowestTimeHardware(currTask,0);
+                for(Instance* inst : Instances){
+                    if(inst->getHardwarePtr()==hw && getInstanceEndingTime(inst) <= getStartingTime(currTask)){
+                        addTaskToInstance(currTask,inst);
+                        allocated_tasks[currTask] = 1;
+                        break;
+                    }
+                }
+                createInstance(currTask);
+            }
+            for(int currTask : bfs_tasks){
+                getCurrWeight(currTask,1,HARD_TIME);
+            }
+
+            std::vector<bool> checked;
+            checked.resize(tasks_amount,0);
+            for(int i = 0;i<tasks_amount;i++){
+                reallocateFastest(HARD_TIME,checked);
+            }
+            
+            break;
+        }
+
+        case 11:{      
+            int HARD_TIME = 10000; 
+            for (int task_id = 0; task_id < tasks_amount; ++task_id) { //Lowest TIME
+                createInstance(task_id);
+                estimatedCost += times.getCost(task_id, getInstance(task_id)->getHardwarePtr());
+            }
+
+
+            std::vector<bool> checked;
+            checked.resize(tasks_amount,0);
+            for(int i = 0;i<tasks_amount;i++){
+                reallocateFastest(HARD_TIME,checked);
+            }
+
+            break;
+        }
+
+        case 61:{        
+            int LOOP_COUNTER;
+            int HARD_TIME = 1000;
+            int currTask = 0;
+            int min_time;
+            std::vector<int> bfs_tasks = TaskGraph.BFS();
+            constructByWeight(bfs_tasks);
+            //reallocateFastest();
+            break;
+        }
+
+        case 70:{        
             int LOOP_COUNTER;
             int HARD_TIME = 1000;
             int currTask = 0;
@@ -80,16 +166,7 @@ void Cost_List::taskDistribution(int rule) {
             for(int currTask : bfs_tasks){
                 getCurrWeight(currTask,1,HARD_TIME);
             }
-            break;
-        }
-
-        case 61:{        
-            int LOOP_COUNTER;
-            int HARD_TIME = 1000;
-            int currTask = 0;
-            int min_time;
-            std::vector<int> bfs_tasks = TaskGraph.BFS();
-            constructByWeight(bfs_tasks);
+            //reallocateFastest(HARD_TIME);
             break;
         }
 
@@ -191,7 +268,7 @@ void Cost_List::taskDistribution(int rule) {
 
             break;
         }
-        case 5:{                //Przydzielanie po koleji, po sąsiadach 0
+        case 50:{                //Przydzielanie po koleji, po sąsiadach 0
             int currTask = 0;  
             int min_time = 2000000;
             Hardware* lowestTimeHW = getLowestTimeHardware(0,0);
@@ -241,9 +318,10 @@ void Cost_List::taskDistribution(int rule) {
             break;
         }
 
-        case 60:{
+        case 5:{
             createInstance(0);
-            int allocatedTasks[tasks_amount] = {0};
+            std::vector<int> allocatedTasks;
+            allocatedTasks.resize(tasks_amount,0);
             allocatedTasks[0] = 1;
             for(int i : TaskGraph.BFS()){
                 for(Instance* ins : Instances){
@@ -350,11 +428,12 @@ void Cost_List::taskDistribution(int rule) {
             }
             break;
         }
-        case 9:
+        case 9:{
             createInstance(0);
             for(int t = 0; t<tasks_amount;t++){
                 addTaskToInstance(t,getInstance(0));
             }
+            break;}
         default:{
             std::cerr << "Nieznana reguła dystrybucji zadań\n";
             break;}

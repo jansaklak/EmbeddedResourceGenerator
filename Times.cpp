@@ -44,9 +44,9 @@ void Times::setCostsMatrix(std::vector<std::vector<int>> _cost_matrix){
 
 void Times::normalize(double task_ratio,double cost_ratio,double time_ratio) {
     normalized_matrix.resize(times_matrix.size());
-    for(int i = 0; i < times_matrix.size(); i++) {
+    for(size_t i = 0; i < times_matrix.size(); i++) {
         normalized_matrix[i].resize(times_matrix.size());
-        for(int j = 0; j < times_matrix.size(); j++) {
+        for(size_t j = 0; j < times_matrix.size(); j++) {
             normalized_matrix[i][j] = times_matrix[i][j] * cost_matrix[i][j];
         }
     }

@@ -27,7 +27,7 @@ public:
     void printNeighbourIndices(int idx) const;
     int getNumberOfEdges() const;
     int getVerticesSize() const;
-    std::vector<std::vector<int>> DFS(int start, int end);
+    std::vector<std::vector<int>> DFS(int start, int end) ;
     std::vector<int> BFS();
     
 };

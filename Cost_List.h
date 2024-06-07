@@ -16,7 +16,49 @@
 #include <functional>
 #include <map>
 #include "Instance.h"
+#include <thread>
+#include <chrono>
+#include <iomanip>
+#include <algorithm>
+#include "Edge.h"
+#include <algorithm>
 #define INF 2147483647
+
+struct WeightTable {
+    Instance* inst;
+    double TCP;
+    double TC;
+    double Tw;
+    double reTw;
+    double Cw;
+    double reCw;
+    double StartingTime;
+    double runTime;
+    double reCalc;
+    double idleTime;
+    double asBefore;
+    double SUM;
+};
+
+static int getRand(int MAX){
+    if(MAX < 1) MAX = 1;
+    return rand() % MAX;
+}
+
+static bool randomBool(int prob) {
+    prob++;
+    return rand() % prob == 0;
+}
+
+static void Licznik(bool& stop, int& czas) {
+    auto start = std::chrono::steady_clock::now();
+    while (!stop) {
+        auto current = std::chrono::steady_clock::now();
+        czas = std::chrono::duration_cast<std::chrono::milliseconds>(current - start).count();
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+}
+
 class Cost_List{
     private:
         std::vector<Hardware> Hardwares;
@@ -29,7 +71,7 @@ class Cost_List{
         std::map<int, Instance*> taskInstanceMap;
         std::map<int,std::pair<int, int>> task_schedule;
 
-        void constructByWeight(std::vector<int> bfs_tasks,int MAX_TIME=INF);
+        
 
         Graf TaskGraph;
         Times times;
@@ -46,6 +88,8 @@ class Cost_List{
         void connectRandomCH();
         int createRandomProc();
 
+        void constructByWeight(std::vector<int> bfs_tasks,int MAX_TIME=INF);
+
         //Simple getters
         Times getTimes() const;
         Graf getGraph() const;
@@ -58,19 +102,20 @@ class Cost_List{
         int getInstanceStartingTime(const Instance* inst);
         int getInstanceEndingTime(const Instance* inst);
         void getCurrWeight(int task_id,bool changeInstances,int MAX_TIME);
-        int getCriticalTime();
-        const Instance* getShortestRunningInstance();
-        const Instance* getLongestRunningInstance();
-        int getTimeRunning(const Instance* inst);
-        int getIdleTime(const Instance* inst,int timeStop);
+        int getCriticalTime() const;
+        const Instance* getShortestRunningInstance() ;
+        const Instance* getLongestRunningInstance() ;
+        int getTimeRunning(const Instance* inst) ;
+        int getIdleTime(const Instance* inst,int timeStop) ;
         Hardware* getLowestTimeHardware(int task_id, int time_cost_normalized) const;
         std::vector<int> getLongestPath(int start) const;
-        
+        std::vector<int> getMaxPath(int start) const;
+        int getStartingTimeScheduled(int task_id);
         //Printing
         void printSchedule();
 
         //Instances
-        Instance* getInstance(int task_id);
+        Instance* getInstance(int task_id) const;
         int createInstance(int task_ID,const Hardware* h);
         int createInstance(int task_ID);
         void addTaskToInstance(int task_ID,Instance* inst);
@@ -89,12 +134,13 @@ class Cost_List{
         double time_weight(int task_id,const Instance* inst);
         double reuse_time_weight(int task_id,const Instance* inst);
         double cost_weight(int task_id,const Instance* inst);
-        double allocated_cost(int task_id,const Instance* inst,int MAX_TIME);
+        double allocated_cost(int task_id,const Instance* inst,double MAX_TIME);
         double inst_starting(int task_id,const Instance* inst);
         double inst_time_running(int task_id,const Instance* inst);
         double reCalculate(int task_id,const Instance* inst);
         double longestIdle(int task_id,const Instance* inst);
         double asBefore(int task_id,const Instance* inst);
+        void reallocateFastest(int maxTIME,std::vector<bool>& checked);
 
     public:
 
@@ -105,6 +151,7 @@ class Cost_List{
         int Load_From_File(const std::string& filename);
         void randALL();
         void clear();
+        void clearNUM();
 
         //Scheduling
         void taskDistribution(int rule);
@@ -116,7 +163,7 @@ class Cost_List{
         void printCOMS(std::ostream& out = std::cout) const;
         void printALL(std::string filename,bool toScreen) const;
         void printToGantt(std::string filename="gantt_data.dat");
-        void printInstances();
+        void printInstances() ;
         //void TaskProgress(int task_id, int time, int hw_id);
 };
 
