@@ -112,6 +112,7 @@ class Cost_List{
         int getTimeRunning(const Instance* inst) ;
         int getIdleTime(const Instance* inst,int timeStop) ;
         Hardware* getLowestTimeHardware(int task_id, int time_cost_normalized) const;
+        Hardware* getSlowestHardware(int) const;
         std::vector<int> getLongestPath(int start) const;
         std::deque<int> getMaxPath() const;
         int getStartingTimeScheduled(int task_id);

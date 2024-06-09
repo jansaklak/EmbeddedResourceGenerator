@@ -229,6 +229,18 @@ std::vector<int> Cost_List::getLongestPath(int start) const {
     return outHW;
 }
 
+    Hardware* Cost_List::getSlowestHardware(int task_id) const {
+        Hardware*outHW = nullptr;
+        int maxTime = 0;
+        for (const Hardware& hw : Hardwares) {
+            if (times.getTime(task_id, &hw) > maxTime) {
+                maxTime = times.getTime(task_id, &hw);
+                outHW = &const_cast<Hardware&>(hw);
+            }
+        }
+        return outHW;
+    }
+
 int Cost_List::getCriticalTime() const{
     int maxTime = 0;
     // for(Instance* i : Instances){

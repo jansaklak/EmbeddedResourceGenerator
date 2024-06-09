@@ -66,7 +66,7 @@ void Cost_List::taskDistribution(int rule) {
             int currTask = 0;
             //int min_time;
             std::vector<int> bfs_tasks = TaskGraph.BFS();
-
+            std::cout << "Instances.size() = " << Instances.size() << std::endl;
             //Tworzenie najszybszego podziału razem z ponownym korzystaniem ze sprzetu
             for(int currTask : bfs_tasks){
                 Hardware* hw = getLowestTimeHardware(currTask,0);
@@ -80,13 +80,36 @@ void Cost_List::taskDistribution(int rule) {
                 createInstance(currTask); // == createInstance(currTask,getLowestTimeHardware(currTask,0));
             }
 
+            printSchedule();
+            printInstances();
+            std::cout << "========================\n\n";
+
             createPaths(TaskGraph.getAdjList());
 
             std::deque<int> maxWezel = getMaxPath();
             
-            for (int task : maxWezel){
-                std::cout <<"to: " << task << "\n";
+            std::deque<int>::iterator it;
+
+            for (it = maxWezel.end() - 1; it >= maxWezel.begin(); it--) {
+                bool removed = false;
+                bool added = false;
+                Hardware* hw = getSlowestHardware(currTask);
+                for (Instance* inst : Instances) {
+                    std::set<int> taskSet = inst->getTaskSet();
+                    if (taskSet.find(*it) != taskSet.end()) {
+                        inst->removeTask(*it);
+                        removed = true;
+                    }
+                    if (inst->getHardwarePtr() == hw) {
+                        addTaskToInstance(currTask, inst);
+                        added = true;
+                    }
+                    if (added && removed) {
+                        break;
+                    }
+                }
             }
+            std::cout << std::endl;
             break;
         }
 
