@@ -148,64 +148,109 @@ std::vector<int> Cost_List::getLongestPath(int start) const {
         return longestPath;
     }
 
-    std::vector<int> Cost_List::getMaxPath(int start) const {
-        std::vector<std::vector<Edge>> adjList = TaskGraph.getAdjList();
-        std::vector<int> dist(TaskGraph.getVerticesSize(), std::numeric_limits<int>::min());
-        std::vector<int> inDegree(TaskGraph.getVerticesSize(), 0);
-        std::queue<int> q;
-        for (const auto& edges : adjList) {
-            for (const auto& edge : edges) {
-                int v = edge.getV2();
-                inDegree[v]++;
-            }
-        }
-        for (int i = 0; i < TaskGraph.getVerticesSize(); ++i) {
-            if (inDegree[i] == 0)
-                q.push(i);
-        }
+    void Cost_List::createPaths(std::vector<std::vector<Edge>> adjList) {
+        std::vector<bool> visited(TaskGraph.getVerticesSize(), false);
+        bool allVisited = false;
+        std::deque<std::deque<int>> queue;
+        std::deque<int> firstElementInQueue;
+        firstElementInQueue.push_back(0);
+        queue.push_back(firstElementInQueue);
 
-        std::vector<int> longestPath;
-        while (!q.empty()) {
-            int u = q.front();
-            q.pop();
-            longestPath.push_back(u);
-            for (const auto& edge : adjList[u]) {
-                int v = edge.getV2();
-                int w = times.getTime(edge.getV2(),getInstance(edge.getV2())->getHardwarePtr());
-                w *= times.getCost(edge.getV2(),getInstance(edge.getV2())->getHardwarePtr());
-                if (dist[u] + w > dist[v]) {
-                    dist[v] = dist[u] + w;
+        while (!allVisited || queue.size() != 0) {
+            std::deque<int> firstVectorFromQueue = queue.front();
+            queue.pop_front();
+            int current = firstVectorFromQueue.back();
+            visited[current] = true;
+            std::vector<Edge> neighboursOfCurrent(adjList[current]);
+
+            if (neighboursOfCurrent.size() > 0) {
+                for (std::vector<Edge>::iterator it = neighboursOfCurrent.begin(); it != neighboursOfCurrent.end(); it++) {
+                    std::deque<int> newVector(firstVectorFromQueue);
+                    newVector.push_back((*it).getV2());
+                    queue.push_back(newVector);
                 }
-                inDegree[v]--;
-                if (inDegree[v] == 0)
-                    q.push(v);
+            }
+            else {
+                paths.push_back(firstVectorFromQueue);
+            }
+            allVisited = true;
+            for (size_t i = 0; i < visited.size(); i++) {
+                allVisited = allVisited && visited[i];
+            }
+        }
+    }
+
+    void Cost_List::printPaths() {
+        for (auto const& path : paths) {
+            for (auto const& n : path) {
+                std::cout << n << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+
+    std::deque<int> Cost_List::getMaxPath(std::vector<int> toSkip) const {
+        std::deque<int> maxPath;
+        int maxWeight = 0;
+
+        for (const auto& path : paths) {
+            int currentWeight = 0;
+            bool pathSkipped = false;
+
+            for (const auto& node : path) {
+                if (toSkip[node] == 0) {
+                    pathSkipped = true;
+                    break;
+                }
+                currentWeight += (times.getTime(node, getInstance(node)->getHardwarePtr()) * 
+                    times.getCost(node, getInstance(node)->getHardwarePtr()));
+            }
+
+            if (!pathSkipped && currentWeight > maxWeight) { // Zmieniamy warunek, aby szukać maksymalnej wagi
+                maxWeight = currentWeight;
+                maxPath = path;
             }
         }
 
-        return longestPath;
+        return maxPath;
     }
+
 
     Hardware* Cost_List::getLowestTimeHardware(int task_id, int time_cost_normalized) const{
-    Hardware* outHW = nullptr;
-    int min_time = INF;
-    for (const Hardware& hw : Hardwares) {
-        int time;
-        if(time_cost_normalized == 0){
-            time = times.getTime(task_id, &hw);
+        Hardware* outHW = nullptr;
+        int min_time = INF;
+        for (const Hardware& hw : Hardwares) {
+            int time;
+            if(time_cost_normalized == 0){
+                time = times.getTime(task_id, &hw);
+            }
+            else if (time_cost_normalized == 1){
+                time = times.getCost(task_id, &hw);
+            }
+            else if(time_cost_normalized == 2){
+                time = times.getNormalized(task_id, &hw);
+            }
+            if (time < min_time) {
+                min_time = time;
+                outHW = &const_cast<Hardware&>(hw);
+            }
         }
-        else if (time_cost_normalized == 1){
-            time = times.getCost(task_id, &hw);
-        }
-        else if(time_cost_normalized == 2){
-            time = times.getNormalized(task_id, &hw);
-        }
-        if (time < min_time) {
-            min_time = time;
-            outHW = &const_cast<Hardware&>(hw);
-        }
+        return outHW;
     }
-    return outHW;
-}
+
+
+
+    Hardware* Cost_List::getSlowestHardware(int task_id) const {
+        Hardware*outHW = nullptr;
+        int maxTime = 0;
+        for (const Hardware& hw : Hardwares) {
+            if (times.getTime(task_id, &hw) > maxTime) {
+                maxTime = times.getTime(task_id, &hw);
+                outHW = &const_cast<Hardware&>(hw);
+            }
+        }
+        return outHW;
+    }
 
 int Cost_List::getCriticalTime() const{
     int maxTime = 0;

@@ -71,7 +71,7 @@ class Cost_List{
         std::map<int, Instance*> taskInstanceMap;
         std::map<int,std::pair<int, int>> task_schedule;
 
-        
+        std::vector<std::deque<int>> paths;
 
         Graf TaskGraph;
         Times times;
@@ -96,6 +96,10 @@ class Cost_List{
         std::vector<Hardware> getHardwares() const;
         std::vector<COM> getCOMS() const;
 
+        // create paths
+        void createPaths(std::vector<std::vector<Edge>>);
+        void printPaths();
+
         //Adv getters
         int getStartingTime(int task_id);
         int getEndingTime(int task_id);
@@ -108,8 +112,9 @@ class Cost_List{
         int getTimeRunning(const Instance* inst) ;
         int getIdleTime(const Instance* inst,int timeStop) ;
         Hardware* getLowestTimeHardware(int task_id, int time_cost_normalized) const;
+        Hardware* getSlowestHardware(int) const;
         std::vector<int> getLongestPath(int start) const;
-        std::vector<int> getMaxPath(int start) const;
+        std::deque<int> getMaxPath(std::vector<int> toSkip) const;
         int getStartingTimeScheduled(int task_id);
         //Printing
         void printSchedule();

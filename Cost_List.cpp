@@ -231,6 +231,9 @@ int Cost_List::createInstance(int task_ID) {
 }
 
 void Cost_List::addTaskToInstance(int task_ID, Instance* inst) {
+    if(getInstance(task_ID) != nullptr){
+        removeTaskFromInstance(task_ID);
+    }
     int startingTimeNewTask = getStartingTime(task_ID);
     if(startingTimeNewTask<getInstanceStartingTime(inst)){
         std::set<int> new_set;

@@ -36,9 +36,6 @@ void Cost_List::printSchedule() {
                 instance_ending_time = task_schedule[pair.first].second;
             }
             else{
-                if(pair.first == 15){
-                    std::cout << "Zadanie " << pair.first << " moge zaczac o " << getStartingTime(pair.first) << "a instancja jest wolna od " << instance_ending_time << "\n" ;
-                }
                 
                 
 
