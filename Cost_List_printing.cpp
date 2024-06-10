@@ -118,7 +118,7 @@ void Cost_List::printInstances() {
     std::cout << "Stworzono " << Instances.size() << " komponentów\n";
     int task_id;
     int task_time;
-    int totalCost = 0;
+    int totalCostOfInstances = 0;
     
     for(int t = 0; t<tasks_amount;t++){
         std::cout  << "T" << t << "\tna " << *getInstance(t) << " od:" << task_schedule[t].first <<" do:" << task_schedule[t].second << std::endl;
@@ -135,11 +135,14 @@ void Cost_List::printInstances() {
         }
         
         expCost += inst->getHardwarePtr()->getCost();
-        totalCost += expCost;
+        totalCostOfInstances += expCost;
         std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " Bezczynnosci: " << getIdleTime(inst,criticTime) << " koszt: " << expCost  << " w tym początkowy: " << inst->getHardwarePtr()->getCost() << "\n";
     }
     
     std::cout << "Czas scieżki krytycznej: " << criticTime;
-    std::cout << "\tKoszt całkowity: " << totalCost << std::endl;
+    std::cout << "\tKoszt całkowity instancji: " << totalCostOfInstances << std::endl;
+}
 
+void Cost_List::printTotalCost() {
+    std::cout << "Całkowity koszt systemu z uwzględnieniem kary: " << totalCost << std::endl;
 }

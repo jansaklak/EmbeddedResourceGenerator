@@ -62,8 +62,9 @@ void Cost_List::taskDistribution(int rule) {
 
         case 8:{        
             int LOOP_COUNTER = 3;
-            int HARD_TIME = 3000;
+            int HARD_TIME = 250;
             int currTask = 0;
+            int PUNISHMENT = 2;
             //int min_time;
             std::vector<int> bfs_tasks = TaskGraph.BFS();
             std::cout << "Instances.size() = " << Instances.size() << std::endl;
@@ -124,7 +125,21 @@ void Cost_List::taskDistribution(int rule) {
                     }
 
                 printSchedule();
+
+                int totalTime = getCriticalTime();
+                if (totalTime > HARD_TIME) {
+                    totalCost = 0;
+                    for (Instance* instance : Instances) {
+                        totalCost += instance->getHardwarePtr()->getCost();
+                        for (int taskID : instance->getTaskSet()) {
+                            totalCost += times.getCost(taskID, instance->getHardwarePtr());
+                        }
+                    }
+                    totalCost += (totalTime - HARD_TIME) * PUNISHMENT;
+                }
+
                 printInstances();
+                printTotalCost();
                 criticalTimeResults.pop_front();
                 criticalTimeResults.push_back(getCriticalTime());
                 int possibleMoves = 0;

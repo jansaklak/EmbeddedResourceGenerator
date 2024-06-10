@@ -70,6 +70,7 @@ class Cost_List{
         std::map<int, int> HWInstancesCount;
         std::map<int, Instance*> taskInstanceMap;
         std::map<int,std::pair<int, int>> task_schedule;
+        int totalCost;
 
         std::vector<std::deque<int>> paths;
 
@@ -99,6 +100,8 @@ class Cost_List{
         // create paths
         void createPaths(std::vector<std::vector<Edge>>);
         void printPaths();
+
+        void calculateTotalCost();
 
         //Adv getters
         int getStartingTime(int task_id);
@@ -169,6 +172,7 @@ class Cost_List{
         void printALL(std::string filename,bool toScreen) const;
         void printToGantt(std::string filename="gantt_data.dat");
         void printInstances() ;
+        void printTotalCost();
         //void TaskProgress(int task_id, int time, int hw_id);
 };
 
