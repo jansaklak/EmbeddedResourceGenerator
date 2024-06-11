@@ -15,11 +15,12 @@
 void Cost_List::printSchedule() {
     int instance_ending_time;
     int criticalTime = 0;
+
     task_schedule.clear();
     for(Instance* i : Instances) {
         instance_ending_time = 0;
         
-        //std::cout << "Dla instancji " << *i;
+        std::cout << "Dla instancji " << *i;
         std::vector<std::pair<int, int>> taskWithStartingTime;
         for (int taskID : i->getTaskSet()) {
             taskWithStartingTime.push_back(std::make_pair(taskID, getStartingTime(taskID)));
@@ -30,10 +31,26 @@ void Cost_List::printSchedule() {
         for (const auto& pair : taskWithStartingTime) {
             if(instance_ending_time<=pair.second){
                 
-                //std::cout << "Zadanie " << pair.first << " moge zaczac o " << getStartingTime(pair.first) << "a instancja jest wolna od " << instance_ending_time << "\n" ;
-                std::pair<int,int> timeRunning = {getStartingTime(pair.first),getStartingTime(pair.first)+times.getTime(pair.first,i->getHardwarePtr())};
-                task_schedule.insert({pair.first,timeRunning});
-                instance_ending_time = task_schedule[pair.first].second;
+                std::cout << "Zadanie " << pair.first << " moge zaczac o " << getStartingTime(pair.first) << "a instancja jest wolna od " << instance_ending_time << "\n" ;
+                std::pair<int, int> timeRunning = {getStartingTime(pair.first), getStartingTime(pair.first) + times.getTime(pair.first, i->getHardwarePtr())};
+                std::cout << "Przed wstawieniem: " << timeRunning.first << ", " << timeRunning.second << "\n";
+
+                // Wstawienie do mapy
+                auto result = task_schedule.emplace(pair.first, timeRunning);
+                if (!result.second) {
+                    task_schedule[pair.first] = timeRunning;
+                }
+
+                // Sprawdzenie wartości po wstawieniu do mapy
+                auto it = task_schedule.find(pair.first);
+                if (it != task_schedule.end()) {
+                    std::cout << "Zakonczy sie o : " << timeRunning.second << " lub " << it->second.second << "\n";
+                    instance_ending_time = it->second.second;
+                } else {
+                    std::cout << "Blad: nie znaleziono klucza w task_schedule\n";
+                }
+
+
             }
             else{
                 
