@@ -24,6 +24,12 @@
 #include <algorithm>
 #define INF 2147483647
 
+struct TaskData {
+    std::string variable;
+    std::string op;
+    int value;
+};
+
 struct WeightTable {
     Instance* inst;
     double TCP;
@@ -38,6 +44,12 @@ struct WeightTable {
     double idleTime;
     double asBefore;
     double SUM;
+};
+
+struct CompareData {
+    std::string variable;
+    std::string op;
+    int value;
 };
 
 static int getRand(int MAX){
@@ -70,8 +82,14 @@ class Cost_List{
         std::map<int, int> HWInstancesCount;
         std::map<int, Instance*> taskInstanceMap;
         std::map<int,std::pair<int, int>> task_schedule;
+        std::set<int> unpredictedTasks;
+        std::set<int> conditionalTasks;
+        int totalCost;
+        std::map<int, std::string> conditions;
+        std::vector<std::deque<int>> paths;
+        std::map<int, TaskData> conditionTaskMap;
 
-        
+        std::unordered_map<std::string, std::string> CostListConfig;
 
         Graf TaskGraph;
         Times times;
@@ -96,6 +114,16 @@ class Cost_List{
         std::vector<Hardware> getHardwares() const;
         std::vector<COM> getCOMS() const;
 
+        int Load_Config();
+
+        // create paths
+        void createPaths(std::vector<std::vector<Edge>>);
+        void printPaths();
+        void unpredictedHandler(int task_ID);
+        void calculateTotalCost();
+        void printUnpredictedTasks();
+        bool evaluateCondition(int task_id);
+        void skipConditional();
         //Adv getters
         int getStartingTime(int task_id);
         int getEndingTime(int task_id);
@@ -108,8 +136,9 @@ class Cost_List{
         int getTimeRunning(const Instance* inst) ;
         int getIdleTime(const Instance* inst,int timeStop) ;
         Hardware* getLowestTimeHardware(int task_id, int time_cost_normalized) const;
+        Hardware* getSlowestHardware(int) const;
         std::vector<int> getLongestPath(int start) const;
-        std::vector<int> getMaxPath(int start) const;
+        std::deque<int> getMaxPath(std::vector<int> toSkip) const;
         int getStartingTimeScheduled(int task_id);
         //Printing
         void printSchedule();
@@ -164,6 +193,7 @@ class Cost_List{
         void printALL(std::string filename,bool toScreen) const;
         void printToGantt(std::string filename="gantt_data.dat");
         void printInstances() ;
+        void printTotalCost();
         //void TaskProgress(int task_id, int time, int hw_id);
 };
 

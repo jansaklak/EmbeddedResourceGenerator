@@ -64,6 +64,8 @@ void Cost_List::clear(){
     task_schedule.clear();
     allocated_tasks.clear();
     progress.clear();
+    unpredictedTasks.clear();
+    conditionalTasks.clear();
 }
 
 
@@ -200,17 +202,59 @@ void Cost_List::runTasks() {
 }
 
 
+void Cost_List::unpredictedHandler(int task_ID){
+    if (allocated_tasks[task_ID] == 1) {
+                return;
+    }
+    std::cout <<" NIe przewidziane jest: " << task_ID << "\n";
+    int min_time = INF;
+    int time;
+    Instance* bestFoundInst = nullptr;
+    for (Instance* inst : Instances) {  //Znajdz najtanszy z obecnych Inst
+        if(inst->getHardwarePtr()->getType()=="PE"){
+            time = times.getTime(task_ID, inst->getHardwarePtr());
+            if (time < min_time) {
+                min_time = time;
+                bestFoundInst = inst;
+                std::cout <<" ZNalazlem : " << *bestFoundInst << "\n";
+            }
+        }
+    }
+    if (bestFoundInst == nullptr){
+        Hardware* bestPE = nullptr;
+        int maxTime = 0;
+        for (const Hardware& hw : Hardwares) {
+            if (hw.getType()=="PE" && times.getTime(task_ID, &hw) > maxTime) {
+                maxTime = times.getTime(task_ID, &hw);
+                bestPE = &const_cast<Hardware&>(hw);
+            }
+        }
+        bestFoundInst = new Instance(HWInstancesCount[bestPE->getID()], bestPE);
+        HWInstancesCount[bestPE->getID()]++;
+        Instances.push_back(bestFoundInst);
+    }
+    bestFoundInst->addTask(task_ID);
+    taskInstanceMap[task_ID] = bestFoundInst;
+    allocated_tasks[task_ID] = 1;
+}
+
 
 
 int Cost_List::createInstance(int task_ID, const Hardware* h) {
+    
     if(allocated_tasks[task_ID]==1){
         return 0;
+    }
+    if(unpredictedTasks.find(task_ID) != unpredictedTasks.end()){
+        unpredictedHandler(task_ID);
+        return -2;
     }
     Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
     HWInstancesCount[h->getID()]++;
     newInst->addTask(task_ID);
     Instances.push_back(newInst);
     taskInstanceMap[task_ID] = newInst;
+    allocated_tasks[task_ID] = 1;
     //std::cout << "\n\n\ntask instnace map dla " << task_ID << " :: " << taskInstanceMap[task_ID] << "\n\n\n";
     return 1;
 }
@@ -218,6 +262,10 @@ int Cost_List::createInstance(int task_ID, const Hardware* h) {
 int Cost_List::createInstance(int task_ID) {
     if (allocated_tasks[task_ID] == 1) {
                 return 0;
+    }
+    if(unpredictedTasks.find(task_ID) != unpredictedTasks.end()){
+        unpredictedHandler(task_ID);
+        return -2;
     }
     Hardware* h = getLowestTimeHardware(task_ID, 0);
     Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
@@ -231,6 +279,13 @@ int Cost_List::createInstance(int task_ID) {
 }
 
 void Cost_List::addTaskToInstance(int task_ID, Instance* inst) {
+    if(unpredictedTasks.find(task_ID) != unpredictedTasks.end()){
+        unpredictedHandler(task_ID);
+        return;
+    }
+    if(getInstance(task_ID) != nullptr){
+        removeTaskFromInstance(task_ID);
+    }
     int startingTimeNewTask = getStartingTime(task_ID);
     if(startingTimeNewTask<getInstanceStartingTime(inst)){
         std::set<int> new_set;
@@ -275,6 +330,10 @@ void Cost_List::addTaskToInstance(int task_ID, Instance* inst) {
 
 
 void Cost_List::removeTaskFromInstance(int task_ID){
+    if(unpredictedTasks.find(task_ID) != unpredictedTasks.end()){
+        unpredictedHandler(task_ID);
+        return;
+    }
     taskInstanceMap[task_ID]->removeTask(task_ID);
     if(taskInstanceMap[task_ID]->getTaskSet().empty()){
         Instances.erase(std::remove(Instances.begin(), Instances.end(), taskInstanceMap[task_ID]), Instances.end());
@@ -291,20 +350,27 @@ void Cost_List::TaskRunner(Instance i) {
         int alltasks = i.getTaskSet().size();
         for (int t : i.getTaskSet()) {
             if (progress[t] == -1) {
-                int time = times.getTime(t, running_hw);
-                {
-                    std::cout << "T"<< t << " on " << i << std::endl;
-                    progress[t] = 0;
-                    for (int i = 1; i < time+1; ++i) {
-                        progress[t] = (((i + 1) * 100) / time);
-                        std::this_thread::sleep_for(std::chrono::milliseconds(simulation_time_scale));
-                    }
-                    ++taskCounter;
-                    std::cout << "\tT" << t << "done\n";
-                    for (int i : TaskGraph.getOutNeighbourIndices(t)) {
-                        if(progress[i]==-2) progress[i] = -1;
+                if(conditionalTasks.find(t) != conditionalTasks.end() && evaluateCondition(t) == 1){
+                        std::cout << "CT" << t << "skipped";
+                        progress[t] = 1;
+                }
+                else{
+                    int time = times.getTime(t, running_hw);
+                    {
+                        std::cout << "T"<< t << " on " << i << std::endl;
+                        progress[t] = 0;
+                        for (int i = 1; i < time+1; ++i) {
+                            progress[t] = (((i + 1) * 100) / time);
+                            std::this_thread::sleep_for(std::chrono::milliseconds(simulation_time_scale));
+                        }
+                        ++taskCounter;
+                        std::cout << "\tT" << t << "done\n";
                     }
                 }
+                for (int i : TaskGraph.getOutNeighbourIndices(t)) {
+                            if(progress[i]==-2) progress[i] = -1;
+                    }
+                
             }
         }
         if (taskCounter == alltasks) {
@@ -376,3 +442,61 @@ void Cost_List::TaskRunner(Instance i) {
 //     }
 
 // }
+
+
+bool Cost_List::evaluateCondition(int task_id) {
+    std::string variable = conditionTaskMap[task_id].variable;
+    std::string op = conditionTaskMap[task_id].op;
+    int value_int = conditionTaskMap[task_id].value;
+    int actual_value_int;
+    if(variable == "CRITICAL_TIME"){
+        actual_value_int = getCriticalTime();
+    }
+    else if (variable == "TOTAL_COST")
+    {
+        actual_value_int = totalCost;
+    }
+    else if (variable == "HC_INSTANCES")
+    {
+        actual_value_int = hardware_cores_amount;
+    }
+    else if (variable == "PE_INSTANCES")
+    {
+        actual_value_int = processing_unit_amount;
+    }
+    else if (variable == "TOTAL_INSTANCES")
+    {
+        actual_value_int = Hardwares.size();
+    }
+    else if (variable == "CURR_TIME"){
+        actual_value_int = getStartingTime(task_id);
+    }
+    else{
+        if (CostListConfig.find(variable) == CostListConfig.end()) {
+            std::cerr << "Error: Variable " << variable << " not found in config." << std::endl;
+            return false;
+        }
+        std::string actual_value = CostListConfig.at(variable);
+        actual_value_int = std::stoi(actual_value);
+    }
+
+
+    
+    
+
+    // Compare the actual value with the provided value based on the operator
+    if (op == ">" && actual_value_int > value_int) {
+        return true;
+    } else if (op == ">=" && actual_value_int >= value_int) {
+        return true;
+    } else if (op == "<" && actual_value_int < value_int) {
+        return true;
+    } else if (op == "<=" && actual_value_int <= value_int) {
+        return true;
+    } else if (op == "==" && actual_value_int == value_int) {
+        return true;
+    }
+
+    return false;
+}
+

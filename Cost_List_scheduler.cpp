@@ -62,11 +62,14 @@ void Cost_List::taskDistribution(int rule) {
 
         case 8:{        
             int LOOP_COUNTER = 3;
-            int HARD_TIME = 3000;
+            int HARD_TIME = 250;
             int currTask = 0;
+            int PUNISHMENT = 2;
             //int min_time;
             std::vector<int> bfs_tasks = TaskGraph.BFS();
-
+            std::cout << "Instances.size() = " << Instances.size() << std::endl;
+            std::vector<int> tasks_visited_count;
+            tasks_visited_count.resize(TaskGraph.getVerticesSize(),LOOP_COUNTER);
             //Tworzenie najszybszego podziału razem z ponownym korzystaniem ze sprzetu
             for(int currTask : bfs_tasks){
                 Hardware* hw = getLowestTimeHardware(currTask,0);
@@ -80,12 +83,70 @@ void Cost_List::taskDistribution(int rule) {
                 createInstance(currTask); // == createInstance(currTask,getLowestTimeHardware(currTask,0));
             }
 
-            std::vector<int> maxWezel =  getMaxPath(0);
-            
-            for (int task : maxWezel){
-                std::cout <<"to: " << task << "\n";
+            //printSchedule();
+            //printInstances();
+            std::cout << "========================\n\n";
+            int possibleMoves = 0;
+            for(int t=0;t<TaskGraph.getVerticesSize();t++){
+                possibleMoves += tasks_visited_count[t];
             }
-            break;
+
+            std::deque<int> criticalTimeResults;
+            for(int k=0;k<TaskGraph.getVerticesSize();k++){
+                criticalTimeResults.push_back(INF - k);
+            }
+
+            while(possibleMoves > 0 || criticalTimeResults.front() != criticalTimeResults.back()){ //brak możliwych ruchów albo nie ma poprawy wyników
+                //std::cout <<"Molziwe ruchy: " << possibleMoves << "\n";
+                createPaths(TaskGraph.getAdjList());
+                std::deque<int> maxWezel = getMaxPath(tasks_visited_count);
+                
+                if(maxWezel.size() == 0) break;
+                int Task_to_Check = maxWezel.back();
+                
+
+                if(Task_to_Check == 0 || tasks_visited_count[Task_to_Check]>0){ //rozpatruje LOOP_COUNTER razy
+                        tasks_visited_count[Task_to_Check]--;
+                        int min_time = INF;
+                        int cost;
+                        Instance* bestFoundInst = nullptr;
+
+                        for (Instance* inst : Instances) {  //Znajdz najtanszy z obecnych Inst
+                            cost = times.getCost(Task_to_Check, inst->getHardwarePtr());
+                            if (cost < min_time) {
+                                min_time = cost;
+                                bestFoundInst = inst;
+                            }
+                        }
+                        
+                        addTaskToInstance(Task_to_Check,bestFoundInst); //Dodaj do najlepszego (usuwanie automatycznie)
+                    }
+
+                printSchedule();
+
+                int totalTime = getCriticalTime();
+                if (totalTime > HARD_TIME) {
+                    totalCost = 0;
+                    for (Instance* instance : Instances) {
+                        totalCost += instance->getHardwarePtr()->getCost();
+                        for (int taskID : instance->getTaskSet()) {
+                            totalCost += times.getCost(taskID, instance->getHardwarePtr());
+                        }
+                    }
+                    totalCost += (totalTime - HARD_TIME) * PUNISHMENT;
+                }
+
+                //printInstances();
+                
+                criticalTimeResults.pop_front();
+                criticalTimeResults.push_back(getCriticalTime());
+                int possibleMoves = 0;
+                for(int t=0;t<TaskGraph.getVerticesSize();t++){
+                    possibleMoves += tasks_visited_count[t];
+                }
+            }
+            printTotalCost();
+            break;   
         }
 
         case 81:{        
@@ -438,6 +499,7 @@ void Cost_List::taskDistribution(int rule) {
             std::cerr << "Nieznana reguła dystrybucji zadań\n";
             break;}
     }
+    printUnpredictedTasks();
     printSchedule();
     printInstances();
 }

@@ -15,6 +15,7 @@
 void Cost_List::printSchedule() {
     int instance_ending_time;
     int criticalTime = 0;
+
     task_schedule.clear();
     for(Instance* i : Instances) {
         instance_ending_time = 0;
@@ -31,14 +32,27 @@ void Cost_List::printSchedule() {
             if(instance_ending_time<=pair.second){
                 
                 //std::cout << "Zadanie " << pair.first << " moge zaczac o " << getStartingTime(pair.first) << "a instancja jest wolna od " << instance_ending_time << "\n" ;
-                std::pair<int,int> timeRunning = {getStartingTime(pair.first),getStartingTime(pair.first)+times.getTime(pair.first,i->getHardwarePtr())};
-                task_schedule.insert({pair.first,timeRunning});
-                instance_ending_time = task_schedule[pair.first].second;
+                std::pair<int, int> timeRunning = {getStartingTime(pair.first), getStartingTime(pair.first) + times.getTime(pair.first, i->getHardwarePtr())};
+                //std::cout << "Przed wstawieniem: " << timeRunning.first << ", " << timeRunning.second << "\n";
+
+                // Wstawienie do mapy
+                auto result = task_schedule.emplace(pair.first, timeRunning);
+                if (!result.second) {
+                    task_schedule[pair.first] = timeRunning;
+                }
+
+                // Sprawdzenie wartości po wstawieniu do mapy
+                auto it = task_schedule.find(pair.first);
+                if (it != task_schedule.end()) {
+                    //std::cout << "Zakonczy sie o : " << timeRunning.second << " lub " << it->second.second << "\n";
+                    instance_ending_time = it->second.second;
+                } else {
+                    //std::cout << "Blad: nie znaleziono klucza w task_schedule\n";
+                }
+
+
             }
             else{
-                if(pair.first == 15){
-                    std::cout << "Zadanie " << pair.first << " moge zaczac o " << getStartingTime(pair.first) << "a instancja jest wolna od " << instance_ending_time << "\n" ;
-                }
                 
                 
 
@@ -121,9 +135,12 @@ void Cost_List::printInstances() {
     std::cout << "Stworzono " << Instances.size() << " komponentów\n";
     int task_id;
     int task_time;
-    int totalCost = 0;
+    int totalCostOfInstances = 0;
     
     for(int t = 0; t<tasks_amount;t++){
+        if(unpredictedTasks.find(t) != unpredictedTasks.end()){
+            std::cout << "U";
+        }
         std::cout  << "T" << t << "\tna " << *getInstance(t) << " od:" << task_schedule[t].first <<" do:" << task_schedule[t].second << std::endl;
     }
 
@@ -138,11 +155,22 @@ void Cost_List::printInstances() {
         }
         
         expCost += inst->getHardwarePtr()->getCost();
-        totalCost += expCost;
+        totalCostOfInstances += expCost;
         std::cout << *inst << " Zadan: " << inst->getTaskSet().size() << " Spodziewany czas: " << expTime << " Bezczynnosci: " << getIdleTime(inst,criticTime) << " koszt: " << expCost  << " w tym początkowy: " << inst->getHardwarePtr()->getCost() << "\n";
     }
     
     std::cout << "Czas scieżki krytycznej: " << criticTime;
-    std::cout << "\tKoszt całkowity: " << totalCost << std::endl;
+    std::cout << "\tKoszt całkowity instancji: " << totalCostOfInstances << std::endl;
+}
 
+void Cost_List::printTotalCost() {
+    std::cout << "Całkowity koszt systemu z uwzględnieniem kary: " << totalCost << std::endl;
+}
+
+void Cost_List::printUnpredictedTasks(){
+    std::cout <<"nieprzewidziane zadania to : ";
+    for(int task : unpredictedTasks){
+        std::cout << "T" << task << ", ";
+    }
+    std::cout << "\n";
 }

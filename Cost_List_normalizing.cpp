@@ -103,7 +103,7 @@ void Cost_List::constructByWeight(std::vector<int> bfs_tasks,int MAX_TIME){
         possibleInstances.push_back(newInst);
         ++i;
     }
-    std::cout << "ZROBIONE";
+    //std::cout << "ZROBIONE";
     for(int task_id : bfs_tasks){
         //std::cout << "\n\t ZADANIE" << task_id << "\n";
         std::vector<WeightTable> weightsTable;
