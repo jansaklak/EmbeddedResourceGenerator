@@ -42,6 +42,21 @@ void Times::setCostsMatrix(std::vector<std::vector<int>> _cost_matrix){
     return;
 }
 
+void Times::setSubTaskTotalTime(int TaskID, int subTotalTime, int subTotalCost) {
+    if (TaskID < 0 || TaskID >= cost_matrix.size() || TaskID >= times_matrix.size()) {
+        std::cerr << "Invalid TaskID: " << TaskID << std::endl;
+        return;
+    }
+
+    for (size_t i = 0; i < cost_matrix[TaskID].size(); i++) {
+        cost_matrix[TaskID][i] = subTotalCost;
+    }
+
+    for (size_t i = 0; i < times_matrix[TaskID].size(); i++) {
+        times_matrix[TaskID][i] = subTotalTime;
+    }
+}
+
 void Times::normalize(double task_ratio,double cost_ratio,double time_ratio) {
     normalized_matrix.resize(times_matrix.size());
     for(size_t i = 0; i < times_matrix.size(); i++) {

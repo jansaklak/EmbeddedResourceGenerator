@@ -4,44 +4,53 @@
 #include <vector>
 #include <algorithm>
 #include "Edge.h"
+#include <iostream>
 
 const int INF = std::numeric_limits<int>::max();
+
 Graf::Graf(){
     maxVert = 1;
     adjList.resize(maxVert);
 }
+
 Graf::~Graf() {
 }
 
 void Graf::addEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) {
-    if(i_Vertex_Index_1>maxVert) maxVert = i_Vertex_Index_1 + 1;
-    if(i_Vertex_Index_2>maxVert) maxVert = i_Vertex_Index_2 + 1;
-    adjList.resize(maxVert+1);
+    if (i_Vertex_Index_1 >= maxVert || i_Vertex_Index_2 >= maxVert) {
+        maxVert = std::max(i_Vertex_Index_1, i_Vertex_Index_2) + 1;
+        adjList.resize(maxVert);
+    }
     Edge edge(i_Vertex_Index_1, i_Vertex_Index_2);
     adjList[i_Vertex_Index_1].push_back(edge);
 }
+
 void Graf::addEdge(int i_Vertex_Index_1, int i_Vertex_Index_2, int weight) {
-    if(i_Vertex_Index_1>maxVert) maxVert = i_Vertex_Index_1 + 1;
-    if(i_Vertex_Index_2>maxVert) maxVert = i_Vertex_Index_2 + 1;
-    adjList.resize(maxVert+1);
+    if (i_Vertex_Index_1 >= maxVert || i_Vertex_Index_2 >= maxVert) {
+        maxVert = std::max(i_Vertex_Index_1, i_Vertex_Index_2) + 1;
+        adjList.resize(maxVert);
+    }
     Edge edge(i_Vertex_Index_1, i_Vertex_Index_2, weight);
     adjList[i_Vertex_Index_1].push_back(edge);
 }
 
-int Graf::getVerticesSize() const{
+int Graf::getVerticesSize() const {
     return adjList.size();
 }
 
 int Graf::getWeightEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) const {
+    if (i_Vertex_Index_1 >= maxVert || i_Vertex_Index_2 >= maxVert) return -1;
     for (const auto& edge : adjList[i_Vertex_Index_1]) {
         if ((edge.getV1() == i_Vertex_Index_1 && edge.getV2() == i_Vertex_Index_2) ||
             (edge.getV1() == i_Vertex_Index_2 && edge.getV2() == i_Vertex_Index_1)) {
             return edge.getWeight();
         }
-    }    return -1;
+    }
+    return -1;
 }
 
 bool Graf::checkEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) const {
+    if (i_Vertex_Index_1 >= maxVert || i_Vertex_Index_2 >= maxVert) return false;
     for (const auto& edge : adjList[i_Vertex_Index_1]) {
         if ((edge.getV1() == i_Vertex_Index_1 && edge.getV2() == i_Vertex_Index_2) ||
             (edge.getV1() == i_Vertex_Index_2 && edge.getV2() == i_Vertex_Index_1)) {
@@ -51,13 +60,13 @@ bool Graf::checkEdge(int i_Vertex_Index_1, int i_Vertex_Index_2) const {
     return false;
 }
 
-std::vector<std::vector<Edge>> Graf::getAdjList() const{
+std::vector<std::vector<Edge>> Graf::getAdjList() const {
     return adjList;
-
 }
 
 std::vector<int> Graf::getInNeighbourIndices(int idx) const {
     std::vector<int> inNeighbours;
+    if (idx >= maxVert) return inNeighbours;
     for (int i = 0; i < maxVert; ++i) {
         for (const auto& edge : adjList[i]) {
             if (edge.getV2() == idx) {
@@ -69,11 +78,7 @@ std::vector<int> Graf::getInNeighbourIndices(int idx) const {
     return inNeighbours;
 }
 
-
-
-
-void Graf::printMatrix(std::ostream& out) const{
-
+void Graf::printMatrix(std::ostream& out) const {
     std::vector<std::vector<int>> adjacencyMatrix(maxVert, std::vector<int>(maxVert, 0));
 
     for (int i = 0; i < maxVert; ++i) {
@@ -91,9 +96,9 @@ void Graf::printMatrix(std::ostream& out) const{
     }
 }
 
-
 std::vector<int> Graf::getNeighbourIndices(int idx) const {
     std::vector<int> neighbours;
+    if (idx >= maxVert) return neighbours;
     for (const auto& edge : adjList[idx]) {
         if (edge.getV1() == idx) {
             neighbours.push_back(edge.getV2());
@@ -106,6 +111,7 @@ std::vector<int> Graf::getNeighbourIndices(int idx) const {
 
 std::vector<int> Graf::getOutNeighbourIndices(int idx) const {
     std::vector<int> neighbours;
+    if (idx >= maxVert) return neighbours;
     for (const auto& edge : adjList[idx]) {
         if (edge.getV1() == idx) {
             neighbours.push_back(edge.getV2());
@@ -114,7 +120,7 @@ std::vector<int> Graf::getOutNeighbourIndices(int idx) const {
     return neighbours;
 }
 
-void Graf::DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, std::vector<std::vector<int>>& allPaths) const {
+void Graf::DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, std::vector<std::vector<int>>& allPaths, int destination) const {
     visited[v] = true;
     path.push_back(v);
 
@@ -124,7 +130,7 @@ void Graf::DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, st
         std::vector<int> neighbours = getNeighbourIndices(v);
         for (int u : neighbours) {
             if (!visited[u]) {
-                DFSUtil(u, visited, path, allPaths);
+                DFSUtil(u, visited, path, allPaths, destination);
             }
         }
     }
@@ -132,13 +138,13 @@ void Graf::DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, st
     visited[v] = false;
 }
 
-std::vector<std::vector<int>> Graf::DFS(int start, int end)  {
+std::vector<std::vector<int>> Graf::DFS(int start, int end) {
     std::vector<std::vector<int>> allPaths;
+    if (start >= maxVert || end >= maxVert) return allPaths;
     std::vector<bool> visited(getVerticesSize(), false);
     std::vector<int> path;
-    destination = end; // Ustawiamy wierzchołek docelowy
 
-    DFSUtil(start, visited, path, allPaths);
+    DFSUtil(start, visited, path, allPaths, end);
 
     return allPaths;
 }

@@ -10,8 +10,10 @@
 #include <mutex>
 #include <algorithm>
 #include <map>
+#include <set>
+#include <unordered_set>
 
-
+#include <regex>
 
 
 std::vector<Hardware> Cost_List::getHardwares() const{
@@ -66,6 +68,8 @@ void Cost_List::clear(){
     progress.clear();
     unpredictedTasks.clear();
     conditionalTasks.clear();
+    extendedTasks.clear();
+    subTaskHW.clear();
 }
 
 
@@ -108,6 +112,10 @@ void Cost_List::printALL(std::string filename,bool toScreen) const{
     //@coms
         printCOMS(outputFile);
         if(toScreen) printCOMS();
+        if(conditionalTasks.size() > 0){
+            printConditions(outputFile);
+            if(toScreen) printConditions();
+        }
         outputFile.close();
         std::cout << "Zapisano liste do pliku " << filename << std::endl;
     }
@@ -185,14 +193,14 @@ void Cost_List::connectRandomCH(){
 void Cost_List::runTasks() {
     int TotalCost = 0;
     simulation_time_scale = 1;
-    std::cout << "\nUruchamiam zadania w skali x" << simulation_time_scale << ":\n";
-    progress.resize(TaskGraph.getVerticesSize(), -2); // -2 - cant be done flag
+    progress.resize(TaskGraph.getVerticesSize(),-2); // -2 - cant be done flag
     progress[0] = -1;
     std::vector<std::thread> threads;
     int numThreads = Instances.size();
     bool stop = false;
     int czas = 0;
     std::thread counterThread(Licznik, std::ref(stop), std::ref(czas));
+    std::cout << "\nUruchamiam zadania w skali x" << simulation_time_scale << ":\n";
     for (Instance* i : Instances) threads.push_back(std::thread(&Cost_List::TaskRunner, this, *i));
     for (std::thread& thread : threads) thread.join();
     stop = true;
@@ -206,7 +214,7 @@ void Cost_List::unpredictedHandler(int task_ID){
     if (allocated_tasks[task_ID] == 1) {
                 return;
     }
-    std::cout <<" NIe przewidziane jest: " << task_ID << "\n";
+    std::cout <<" Nie przewidziane jest: " << task_ID << "\n";
     int min_time = INF;
     int time;
     Instance* bestFoundInst = nullptr;
@@ -249,9 +257,14 @@ int Cost_List::createInstance(int task_ID, const Hardware* h) {
         unpredictedHandler(task_ID);
         return -2;
     }
+    if(extendedTasks.find(task_ID) != extendedTasks.end()){
+        subTaskHandler(task_ID);
+        return -3;
+    }
     Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
     HWInstancesCount[h->getID()]++;
     newInst->addTask(task_ID);
+    //std::cout << "DLA ZAD" << task_ID << "STWORZONO" << *newInst << std::endl;
     Instances.push_back(newInst);
     taskInstanceMap[task_ID] = newInst;
     allocated_tasks[task_ID] = 1;
@@ -267,6 +280,10 @@ int Cost_List::createInstance(int task_ID) {
         unpredictedHandler(task_ID);
         return -2;
     }
+    if(extendedTasks.find(task_ID) != extendedTasks.end()){
+        subTaskHandler(task_ID);
+        return -3;
+    }
     Hardware* h = getLowestTimeHardware(task_ID, 0);
     Instance* newInst = new Instance(HWInstancesCount[h->getID()], h);
     HWInstancesCount[h->getID()]++;
@@ -281,6 +298,10 @@ int Cost_List::createInstance(int task_ID) {
 void Cost_List::addTaskToInstance(int task_ID, Instance* inst) {
     if(unpredictedTasks.find(task_ID) != unpredictedTasks.end()){
         unpredictedHandler(task_ID);
+        return;
+    }
+    if(extendedTasks.find(task_ID) != extendedTasks.end()){
+        subTaskHandler(task_ID);
         return;
     }
     if(getInstance(task_ID) != nullptr){
@@ -304,27 +325,6 @@ void Cost_List::addTaskToInstance(int task_ID, Instance* inst) {
     allocated_tasks[task_ID] = 1;
     return;
 
-    // int startingTimeNewTask = getStartingTime(task_ID);
-
-    // // Temporary set to store tasks in sorted order
-    // std::set<int> sortedTaskSet;
-
-    // // Flag to check if the new task has been inserted
-    // bool taskInserted = false;
-    // for (int taskId : inst->getTaskSet()) {
-    //     int startingTimeCurrTask = getStartingTime(taskId);
-    //     if (startingTimeNewTask < startingTimeCurrTask && !taskInserted) {
-    //         sortedTaskSet.insert(task_ID);
-    //         taskInserted = true;
-    //     }
-    //     sortedTaskSet.insert(taskId);
-    // }
-    // if (!taskInserted) {
-    //     sortedTaskSet.insert(task_ID);
-    // }
-    // inst->setTasksSet(sortedTaskSet);
-    // taskInstanceMap[task_ID] = inst;
-
     
 }
 
@@ -343,44 +343,175 @@ void Cost_List::removeTaskFromInstance(int task_ID){
     return;
 }
 
-void Cost_List::TaskRunner(Instance i) {
-    int taskCounter = 0;
-    const Hardware* running_hw = i.getHardwarePtr();
-    while (true) {
-        int alltasks = i.getTaskSet().size();
-        for (int t : i.getTaskSet()) {
-            if (progress[t] == -1) {
-                if(conditionalTasks.find(t) != conditionalTasks.end() && evaluateCondition(t) == 1){
-                        std::cout << "CT" << t << "skipped";
-                        progress[t] = 1;
+std::vector<int> Cost_List::findAllToSkipAfterConditional(int taskID) {
+    std::unordered_set<int> visited;  // Track visited nodes
+    std::unordered_set<int> toSkip;   // Nodes to skip
+    std::queue<int> queue;
+    queue.push(taskID);
+    visited.insert(taskID);
+
+    while (!queue.empty()) {
+        int current = queue.front();
+        queue.pop();
+
+        // Check all outgoing neighbors of the current node
+        for (int neighbor : TaskGraph.getOutNeighbourIndices(current)) {
+            // If the neighbor is not visited
+            if (visited.find(neighbor) == visited.end()) {
+                visited.insert(neighbor);
+
+                // Check all incoming neighbors of this neighbor
+                bool onlyDependentOnConditional = true;
+                for (int inNeighbor : TaskGraph.getInNeighbourIndices(neighbor)) {
+                    if (inNeighbor != taskID && visited.find(inNeighbor) == visited.end()) {
+                        onlyDependentOnConditional = false;
+                        break;
+                    }
                 }
-                else{
+
+                if (onlyDependentOnConditional) {
+                    toSkip.insert(neighbor);
+                    queue.push(neighbor);
+                }
+            }
+        }
+    }
+
+    return std::vector<int>(toSkip.begin(), toSkip.end());
+}
+
+void Cost_List::TaskRunner(Instance inst) {
+    int taskCounter = 0;
+    const Hardware* running_hw = inst.getHardwarePtr();
+    std::set<int> toDo = inst.getTaskSet();
+
+    while (toDo.size() > 0) {
+        std::vector<int> toRemove;
+        for (int t : toDo) {
+            if (progress[t] == -1) {
+                if (conditionalTasks.find(t) != conditionalTasks.end() && evaluateCondition(t) == 0) {
+                    std::cout << "\tCT" << t << " skipped\n";
+                    progress[t] = 2;
+                    ++taskCounter;
+                    for (int taskToSkip : findAllToSkipAfterConditional(t)) {
+                        std::cout << "\tT" << taskToSkip << " skipped (after CT " << t << ")\n";
+                        progress[taskToSkip] = 20;
+                    }
+                } else {
                     int time = times.getTime(t, running_hw);
                     {
-                        std::cout << "T"<< t << " on " << i << std::endl;
+                        std::cout << "T" << t << " on " << inst << std::endl;
                         progress[t] = 0;
-                        for (int i = 1; i < time+1; ++i) {
-                            progress[t] = (((i + 1) * 100) / time);
+                        for (int k = 1; k < time + 1; ++k) {
+                            progress[t] = (((k + 1) * 100) / time);
                             std::this_thread::sleep_for(std::chrono::milliseconds(simulation_time_scale));
                         }
                         ++taskCounter;
-                        std::cout << "\tT" << t << "done\n";
+                        std::cout << "\tT" << t << " done\n";
                     }
                 }
-                for (int i : TaskGraph.getOutNeighbourIndices(t)) {
-                            if(progress[i]==-2) progress[i] = -1;
-                    }
-                
+                for (int toRun : TaskGraph.getOutNeighbourIndices(t)) {
+                    if (progress[toRun] == -2) progress[toRun] = -1;
+                }
+            }
+            if (progress[t] > 0) {
+                toRemove.push_back(t);
             }
         }
-        if (taskCounter == alltasks) {
-            std::cout << "\t\t\t" << i << " ended\n";
-            break;
+
+        for (int t : toRemove) {
+            toDo.erase(t);
         }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    std::cout << "\t\t\t" << inst << " ended\n";
     return;
 }
+
+int extractTaskIdFromDoneCondition(const std::string& variable) {
+    std::regex done_regex(R"(DONE\[(\d+)\])");
+    std::smatch match;
+    if (std::regex_search(variable, match, done_regex) && match.size() > 1) {
+        return std::stoi(match.str(1));
+    }
+    return -1;
+}
+
+
+int Cost_List::evaluateCondition(int task_id) {
+    std::string variable = conditionTaskMap[task_id].variable;
+    std::string op = conditionTaskMap[task_id].op;
+    int value_int = conditionTaskMap[task_id].value;
+    int actual_value_int;
+    if (variable == "CRITICAL_TIME") {
+        actual_value_int = getCriticalTime();
+        if(Instances.size() == 0){
+            return -1;
+        }
+    } else if (variable == "TOTAL_COST") {
+        actual_value_int = totalCost;
+        if(Instances.size() == 0){
+            return -1;
+        }
+    } else if (variable == "HC_INSTANCES") {
+        actual_value_int = hardware_cores_amount;
+        if(Instances.size() == 0){
+            return -1;
+        }
+    } else if (variable == "PE_INSTANCES") {
+        actual_value_int = processing_unit_amount;
+        if(Instances.size() == 0){
+            return -1;
+        }
+    } else if (variable == "TOTAL_INSTANCES") {
+        actual_value_int = Hardwares.size();
+        if(Hardwares.size() == 0){
+            return -1;
+        }
+    } else if (variable == "CURR_TIME") {
+        actual_value_int = task_schedule[task_id].first;
+        if(task_id != 0 && actual_value_int <= 0){
+            return -1;
+        }
+    }
+    else if (variable.find("DONE[") == 0) {
+        int done_task_id = extractTaskIdFromDoneCondition(variable);
+        if(progress.size() < done_task_id){
+            return -1;
+        }
+        else{
+            actual_value_int = progress[done_task_id];
+        }
+        
+    }
+
+     else {
+        auto it = CostListConfig.find(variable);
+        if (it == CostListConfig.end()) {
+            
+            std::cerr << "Error: Variable " << variable << " not found in config." << std::endl;
+            return 0;
+        }
+        std::string actual_value = it->second;
+        actual_value_int = std::stoi(actual_value);
+    }
+
+    if (op == ">" && actual_value_int > value_int) {
+        return 1;
+    } else if (op == ">=" && actual_value_int >= value_int) {
+        return 1;
+    } else if (op == "<" && actual_value_int < value_int) {
+        return 1;
+    } else if (op == "<=" && actual_value_int <= value_int) {
+        return 1;
+    } else if (op == "==" && actual_value_int == value_int) {
+        return 1;
+    }
+
+    return 0;
+}
+
 
 
 
@@ -444,59 +575,24 @@ void Cost_List::TaskRunner(Instance i) {
 // }
 
 
-bool Cost_List::evaluateCondition(int task_id) {
-    std::string variable = conditionTaskMap[task_id].variable;
-    std::string op = conditionTaskMap[task_id].op;
-    int value_int = conditionTaskMap[task_id].value;
-    int actual_value_int;
-    if(variable == "CRITICAL_TIME"){
-        actual_value_int = getCriticalTime();
-    }
-    else if (variable == "TOTAL_COST")
-    {
-        actual_value_int = totalCost;
-    }
-    else if (variable == "HC_INSTANCES")
-    {
-        actual_value_int = hardware_cores_amount;
-    }
-    else if (variable == "PE_INSTANCES")
-    {
-        actual_value_int = processing_unit_amount;
-    }
-    else if (variable == "TOTAL_INSTANCES")
-    {
-        actual_value_int = Hardwares.size();
-    }
-    else if (variable == "CURR_TIME"){
-        actual_value_int = getStartingTime(task_id);
-    }
-    else{
-        if (CostListConfig.find(variable) == CostListConfig.end()) {
-            std::cerr << "Error: Variable " << variable << " not found in config." << std::endl;
-            return false;
-        }
-        std::string actual_value = CostListConfig.at(variable);
-        actual_value_int = std::stoi(actual_value);
-    }
+    // int startingTimeNewTask = getStartingTime(task_ID);
 
+    // // Temporary set to store tasks in sorted order
+    // std::set<int> sortedTaskSet;
 
-    
-    
-
-    // Compare the actual value with the provided value based on the operator
-    if (op == ">" && actual_value_int > value_int) {
-        return true;
-    } else if (op == ">=" && actual_value_int >= value_int) {
-        return true;
-    } else if (op == "<" && actual_value_int < value_int) {
-        return true;
-    } else if (op == "<=" && actual_value_int <= value_int) {
-        return true;
-    } else if (op == "==" && actual_value_int == value_int) {
-        return true;
-    }
-
-    return false;
-}
+    // // Flag to check if the new task has been inserted
+    // bool taskInserted = false;
+    // for (int taskId : inst->getTaskSet()) {
+    //     int startingTimeCurrTask = getStartingTime(taskId);
+    //     if (startingTimeNewTask < startingTimeCurrTask && !taskInserted) {
+    //         sortedTaskSet.insert(task_ID);
+    //         taskInserted = true;
+    //     }
+    //     sortedTaskSet.insert(taskId);
+    // }
+    // if (!taskInserted) {
+    //     sortedTaskSet.insert(task_ID);
+    // }
+    // inst->setTasksSet(sortedTaskSet);
+    // taskInstanceMap[task_ID] = inst;
 

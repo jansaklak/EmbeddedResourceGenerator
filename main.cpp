@@ -11,6 +11,7 @@
 #include "Hardware.h"
 #include "Times.h"
 #include "Cost_List.h"
+#include "SubTasks.h"
 
 extern const int SCALE = 100;
 
@@ -35,7 +36,7 @@ void simulationAndGantt(Cost_List lista){
 
 Cost_List generateRandomCostList(){
     int tasks_amount, hardware_cores_amount, processing_units_amount, channels_amount;
-    int to_screen, with_cost;
+    int to_screen, with_cost,conditional;
 
     std::cout << "Podaj liczbe zadan: ";
     std::cin >> tasks_amount;
@@ -52,6 +53,11 @@ Cost_List generateRandomCostList(){
     }
     Cost_List lista_kosztow = Cost_List(tasks_amount, hardware_cores_amount, processing_units_amount, channels_amount, with_cost);
     lista_kosztow.randALL();
+    std::cout << "Czy Warunkowy? 0/1: ";
+    std::cin >> conditional;
+    if(conditional){
+        lista_kosztow.createRandomConditionalTasksGraph();
+    }
     return lista_kosztow;
 }
 
@@ -139,8 +145,7 @@ int main(){
                                 std::cerr << "\t\tBŁĄÐ ODCZYTU\n";
                                 break;}
                         
-                        
-                        lista.printALL("data/input_test.dat", to_screen);
+                        //lista.printALL("data/input_test.dat", to_screen);
                         file_loaded = 1;
                         break;
                     case 5:

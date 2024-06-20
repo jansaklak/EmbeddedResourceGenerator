@@ -5,7 +5,7 @@ data = []
 with open("gantt_data.dat", "r") as file:
     for line in file:
         parts = line.split()
-        task_id = int(parts[0])
+        task_id = parts[0]  # Task ID as string
         task_type = parts[1]
         start_time = int(parts[2])
         end_time = int(parts[3])

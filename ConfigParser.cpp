@@ -49,14 +49,11 @@ void ConfigParser::parseLine(const std::string& line) {
 
 void ConfigParser::parseDirective(const std::string& directive) {
     std::string trimmedDirective = trim(directive);
-    // Możesz dodać obsługę dyrektyw, jeśli jest to konieczne
-    // Aktualnie tylko je ignorujemy
 }
 
 void ConfigParser::addVariable(const std::string& variable) {
     std::string trimmedVariable = trim(variable);
     if (config->find(trimmedVariable) != config->end()) {
-        throw std::runtime_error("Variable " + trimmedVariable + " already exists.");
     }
    (*config)[trimmedVariable] = "";
 }

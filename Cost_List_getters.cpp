@@ -16,7 +16,7 @@ Instance* Cost_List::getInstance(int task_id) const{
     if (it != taskInstanceMap.end()) {
         return it->second;
     } else {
-        std::cerr << "blad dystrybutora zadan dla zadania " << task_id <<  std::endl;
+        std::cerr << "\nblad dystrybutora zadan dla zadania" << task_id ;
         return nullptr;
     }
 }

@@ -10,7 +10,7 @@ class Graf {
 private:
     int maxVert;
     std::vector<std::vector<Edge>> adjList;
-    void DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, std::vector<std::vector<int>>& allPaths) const;
+    void DFSUtil(int v, std::vector<bool>& visited, std::vector<int>& path, std::vector<std::vector<int>>& allPaths, int destination) const;
     int destination;
 public:
     Graf();

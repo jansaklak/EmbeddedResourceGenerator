@@ -13,7 +13,6 @@ public:
     ConfigParser(std::unordered_map<std::string, std::string>* externalConfig);
     void parseFile(const std::string& filename);
     void printConfig() const;
-
 private:
     std::unordered_map<std::string, std::string>* config;
     void parseLine(const std::string& line);

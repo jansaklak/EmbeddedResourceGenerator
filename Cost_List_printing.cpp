@@ -88,6 +88,12 @@ void Cost_List::printTasks(std::ostream& out) const{
     int size = tasks_amount;
     for(int i = 0; i < size; i++) {
         outIdx = TaskGraph.getOutNeighbourIndices(i);
+        if(conditionalTasks.find(i) != conditionalTasks.end()){
+            out << "C";
+        }
+        if(unpredictedTasks.find(i) != unpredictedTasks.end()){
+            out << "U";
+        }
         out << "T" << i << " ";
         out << outIdx.size() << " ";
         for(int j : outIdx) {
@@ -112,13 +118,39 @@ void Cost_List::printProc(std::ostream& out) const{
     }
 }
 
+void Cost_List::printConditions(std::ostream& out) const{
+
+    out << "@conditions " << std::endl;
+    
+    for(int taskID : conditionalTasks){
+        out << "C" << taskID << "(" << conditionTaskMap.at(taskID).variable << conditionTaskMap.at(taskID).op << conditionTaskMap.at(taskID).value << ")" << std::endl;
+    }
+}
+
+
 
 
 void Cost_List::printToGantt(std::string filename){
     std::ofstream outputFile(filename, std::ofstream::trunc);
     if (outputFile.is_open()) {
         for(int t = 0; t<tasks_amount;t++){
-            outputFile  << t << " " << *getInstance(t) << " " << task_schedule[t].first <<" " << task_schedule[t].second << std::endl;
+            if(extendedTasks.find(t) != extendedTasks.end()){
+                int subTaskStart = task_schedule[t].first;
+                for(int i = 0; i<sumTasksTable.getNumSubTasks(t);i++){
+                    int currSubTime = sumTasksTable.getSubTaskTime(t,i,subTaskHW[t][i].getID());
+                    outputFile << t << "_" << i << " " << subTaskHW[t][i] << " " << subTaskStart << " " << subTaskStart + currSubTime << std::endl;
+                    subTaskStart += currSubTime;
+            }
+            }
+            else{
+                if(conditionalTasks.find(t) != conditionalTasks.end()){
+                    outputFile << "C";
+                }
+                if(unpredictedTasks.find(t) != unpredictedTasks.end()){
+                    outputFile << "U";
+                }
+                outputFile  << t << " " << *getInstance(t) << " " << task_schedule[t].first <<" " << task_schedule[t].second << std::endl;
+            }
         }
         std::cout << "Zapisano wykres zadań do: " << filename << std::endl;
         outputFile.close();
@@ -132,16 +164,31 @@ void Cost_List::printToGantt(std::string filename){
 
 void Cost_List::printInstances() {
     std::sort(Instances.begin(), Instances.end());
+    tasks_amount = TaskGraph.getVerticesSize();
     std::cout << "Stworzono " << Instances.size() << " komponentów\n";
     int task_id;
     int task_time;
     int totalCostOfInstances = 0;
     
-    for(int t = 0; t<tasks_amount;t++){
-        if(unpredictedTasks.find(t) != unpredictedTasks.end()){
+    for(int tid = 0; tid<tasks_amount;++tid){
+        if(unpredictedTasks.find(tid) != unpredictedTasks.end()){
             std::cout << "U";
         }
-        std::cout  << "T" << t << "\tna " << *getInstance(t) << " od:" << task_schedule[t].first <<" do:" << task_schedule[t].second << std::endl;
+        std::cout  << "T" << tid;
+        
+        
+        if(extendedTasks.find(tid) != extendedTasks.end()){
+            std::cout << "\n";
+            int subTaskStart = task_schedule[tid].first;
+            for(int i = 0; i<sumTasksTable.getNumSubTasks(tid);i++){
+                int currSubTime = sumTasksTable.getSubTaskTime(tid,i,subTaskHW[tid][i].getID());
+                std::cout << "\tT" << tid << "_" << i << "\tna " << subTaskHW[tid][i] << "od: " << subTaskStart << "do: " << subTaskStart + currSubTime << std::endl;
+                subTaskStart += currSubTime;
+            }
+        }
+        else{
+            std::cout <<"\tna " <<  *getInstance(tid) << " od:" << task_schedule[tid].first <<" do:" << task_schedule[tid].second << std::endl;
+        }
     }
 
     int criticTime = getCriticalTime();
@@ -168,9 +215,24 @@ void Cost_List::printTotalCost() {
 }
 
 void Cost_List::printUnpredictedTasks(){
-    std::cout <<"nieprzewidziane zadania to : ";
-    for(int task : unpredictedTasks){
-        std::cout << "T" << task << ", ";
+
+    if(unpredictedTasks.size() > 0){
+        std::cout <<"Nieprzewidziane zadania to: ";
+        for(int task : unpredictedTasks){
+            std::cout << "T" << task << ", ";
+        }
+    }
+    if(extendedTasks.size() > 0){
+        std::cout <<"Rozszerzone zadania to: ";
+        for(int task : extendedTasks){
+            std::cout << "T" << task << ", ";
+        }
+    }
+    if(conditionalTasks.size() > 0){
+        std::cout <<"Warunkowe zadania to: ";
+        for(int task : conditionalTasks){
+            std::cout << "T" << task << ", ";
+        }
     }
     std::cout << "\n";
 }

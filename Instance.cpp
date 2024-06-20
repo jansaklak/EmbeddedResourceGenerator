@@ -35,6 +35,9 @@ bool Instance::operator<(const Instance& other) const {
 }
 
 std::ostream& operator<<(std::ostream& os, const Instance& instance) {
+    if(&instance == nullptr){
+        std::cout << " NIE MA TAKIEJ INSTANCJI\n";
+    }
     if(instance.isVirtual()){
         os << "V_" << *instance.getHardwarePtr() << "_" << instance.getID();
     }

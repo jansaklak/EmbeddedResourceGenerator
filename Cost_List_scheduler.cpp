@@ -58,7 +58,29 @@ void Cost_List::taskDistribution(int rule) {
     times.normalize();
     int num_allocated = 0;
     allocated_tasks.resize(tasks_amount,0);
+    //std::cout << "TASKS AMOUNT: " << tasks_amount;
     switch (rule) {
+
+
+        case 100:{
+            std::vector<int> bfs_tasks = TaskGraph.BFS();
+            //std::cout << "Instances.size() = " << Instances.size() << std::endl;
+            
+            for(int currTask : bfs_tasks){
+                Hardware* hw = getLowestTimeHardware(currTask,0);
+                for(Instance* inst : Instances){
+                    if(inst->getHardwarePtr()==hw && getInstanceEndingTime(inst) <= getStartingTime(currTask)){
+                        addTaskToInstance(currTask,inst);
+                        allocated_tasks[currTask] = 1;
+                        break;
+                    }
+                }
+                createInstance(currTask); // == createInstance(currTask,getLowestTimeHardware(currTask,0));
+
+            }
+            break;
+        }
+
 
         case 8:{        
             int LOOP_COUNTER = 3;
@@ -66,10 +88,11 @@ void Cost_List::taskDistribution(int rule) {
             int currTask = 0;
             int PUNISHMENT = 2;
             //int min_time;
+
             std::vector<int> bfs_tasks = TaskGraph.BFS();
-            std::cout << "Instances.size() = " << Instances.size() << std::endl;
             std::vector<int> tasks_visited_count;
             tasks_visited_count.resize(TaskGraph.getVerticesSize(),LOOP_COUNTER);
+            
             //Tworzenie najszybszego podziału razem z ponownym korzystaniem ze sprzetu
             for(int currTask : bfs_tasks){
                 Hardware* hw = getLowestTimeHardware(currTask,0);

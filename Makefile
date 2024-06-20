@@ -1,9 +1,9 @@
 CC=g++
-CFLAGS=-std=c++17 -g -pedantic -O2 -Wall -Wextra -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter
+CFLAGS=-std=c++17 -g -pedantic -Wall -Wextra -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter
 all: main
 
-main: main.o Graf.o Hardware.o ConfigParser.o Times.o COM.o Cost_List.o Edge.o Cost_List_refining.o Cost_List_scheduler.o Cost_List_normalizing.o Cost_List_getters.o Cost_List_creating.o Instance.o Cost_List_printing.o
-	$(CC) $(CFLAGS) main.o Graf.o Hardware.o Edge.o Times.o COM.o Cost_List.o Cost_List_refining.o Cost_List_scheduler.o Cost_List_normalizing.o Instance.o  Cost_List_creating.o Cost_List_printing.o ConfigParser.o Cost_List_getters.o -o main
+main: main.o  Graf.o Hardware.o ConfigParser.o  Times.o COM.o  Edge.o Cost_List_refining.o Cost_List_subtaskHandler.o Cost_List_scheduler.o Cost_List_normalizing.o Cost_List_getters.o Cost_List_creating.o  Cost_List_printing.o SubTasks.o Instance.o Cost_List.o
+	$(CC) $(CFLAGS) main.o  Graf.o Hardware.o ConfigParser.o  Times.o COM.o  Cost_List_subtaskHandler.o Edge.o Cost_List_refining.o Cost_List_scheduler.o Cost_List_normalizing.o Cost_List_getters.o Cost_List_creating.o  Cost_List_printing.o SubTasks.o Instance.o Cost_List.o -o main
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp
@@ -14,6 +14,9 @@ Graf.o: Graf.cpp
 ConfigParser.o: ConfigParser.cpp
 	$(CC) $(CFLAGS) -c ConfigParser.cpp
 
+SubTasks.o: SubTasks.cpp
+	$(CC) $(CFLAGS) -c SubTasks.cpp
+
 Costs.o: Cost_List.cpp
 	$(CC) $(CFLAGS) -c Cost_List.cpp
 
@@ -22,6 +25,9 @@ Hardware.o: Hardware.cpp
 
 Times.o: Times.cpp
 	$(CC) $(CFLAGS) -c Times.cpp
+
+Cost_List_subtaskHandler.o: Cost_List_subtaskHandler.cpp
+	$(CC) $(CFLAGS) -c Cost_List_subtaskHandler.cpp
 
 COM.o: COM.cpp
 	$(CC) $(CFLAGS) -c COM.cpp
